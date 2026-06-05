@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hub Recyclage – Prototype VR</title>
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <style>
+    body { margin: 0; overflow: hidden; background: #000; }
+    /* ── Bouton retour HTML (hors A-Frame, 100% fiable) ── */
+    #exit-overlay {
+      display: none;
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      background: rgba(21, 101, 192, 0.92);
+      color: #fff;
+      font-family: sans-serif;
+      font-size: 20px;
+      font-weight: bold;
+      padding: 14px 36px;
+      border-radius: 60px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+      letter-spacing: 0.03em;
+      pointer-events: all;
+      -webkit-tap-highlight-color: transparent;
+    }
+    #exit-overlay:active { background: rgba(13, 71, 161, 0.95); }
+    /* Instruction fond de scène immersive */
+    #immersive-hint {
+      display: none;
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      color: rgba(255,255,255,0.6);
+      font-family: sans-serif;
+      font-size: 14px;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+<script>
+/* ================================================================
+   ROUE DE DÉCOMPTE — gaze-wheel (sur <a-camera>)
+
+   • Dessine un point central + un anneau fin (fond)
+   • Quand un élément .dwell-target est regardé :
+       – un arc épais tourne de 0° à 360° en data-dwell-ms ms
+       – quand l'arc ferme le cercle → le callback onComplete se déclenche
+   • Communication via events document :
+       "gaze-dwell-start" { ms, onComplete }
+       "gaze-dwell-stop"
+   ================================================================ */
+AFRAME.registerComponent('gaze-wheel', {
+  init: function () {
+    // ── Canvas ──────────────────────────────────────────────────
+    const canvas   = document.createElement('canvas');
+    canvas.width   = canvas.height = 256;
+    this.ctx       = canvas.getContext('2d');
+    this.tex       = new THREE.CanvasTexture(canvas);
+
+    // ── Mesh Three.js (ajouté directement sur le object3D caméra) ──
+    // Fiable au chargement, sans passer par les assets A-Frame
+    this._draw(0);
+    const geo  = new THREE.PlaneGeometry(0.08, 0.08);
+    const mat  = new THREE.MeshBasicMaterial({
+      map: this.tex, transparent: true, depthTest: false
+    });
+    this.mesh  = new THREE.Mesh(geo, mat);
+    this.mesh.position.set(0, 0, -0.75);
+    this.mesh.renderOrder = 999;
+    this.el.object3D.add(this.mesh);
+
+    // ── État ────────────────────────────────────────────────────
+    this._onComplete = null;
+    this._dwellMs    = 0;
+    this._startTime  = 0;
+    this._rafId      = null;
+
+    // ── Écoute des events globaux ───────────────────────────────
+    document.addEventListener('gaze-dwell-start', (e) => {
+      this._start(e.detail.ms, e.detail.onComplete);
+    });
+    document.addEventListener('gaze-dwell-stop', () => {
+      this._stop();
+    });
+  },
+
+  _start: function (ms, cb) {
+    this._stop();
+    this._dwellMs    = ms;
+    this._onComplete = cb;
+    this._startTime  = performance.now();
+    this._animate();
+  },
+
+  _stop: function () {
+    cancelAnimationFrame(this._rafId);
+    this._rafId      = null;
+    this._onComplete = null;
+    this._draw(0);
+  },
+
+  _animate: function () {
+    this._rafId = requestAnimationFrame(() => {
+      const p = Math.min((performance.now() - this._startTime) / this._dwellMs, 1);
+      this._draw(p);
+      if (p < 1) {
+        this._animate();
+      } else {
+        const cb = this._onComplete;
+        this._stop();
+        if (cb) cb();
+      }
+    });
+  },
+
+  _draw: function (progress) {
+    const ctx   = this.ctx;
+    const cx = 128, cy = 128, r = 88;
+    ctx.clearRect(0, 0, 256, 256);
+
+    // Point central
+    ctx.beginPath();
+    ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.93)';
+    ctx.fill();
+
+    // Anneau fin de fond
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+    ctx.lineWidth   = 5;
+    ctx.stroke();
+
+    // Arc de progression épais
+    if (progress > 0.001) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2, false);
+      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+      ctx.lineWidth   = 14;
+      ctx.lineCap     = 'round';
+      ctx.stroke();
+    }
+    this.tex.needsUpdate = true;
+  },
+
+  remove: function () {
+    cancelAnimationFrame(this._rafId);
+    if (this.mesh) this.el.object3D.remove(this.mesh);
+  }
+});
+
+/* ================================================================
+   GAZE-INTERACT — sur chaque objet 3D
+
+   Séquence :
+   1. Curseur entre sur hitbox        → rotation de l'objet démarre
+   2. 2 s de regard sur hitbox        → panneau preview apparaît (scale 0→1)
+   3. Curseur entre sur bouton immersif (dans le panneau) → 5 s de regard
+   4. 5 s écoulés                     → mode immersif 360° se lance
+   5. Si curseur quitte la zone       → panneau reste 6 s puis disparaît
+   ================================================================ */
+AFRAME.registerComponent('gaze-interact', {
+  schema: {
+    previewPanelId: { type: 'string', default: '' },
+    video360Label:  { type: 'string', default: '' },
+    hitW: { type: 'number', default: 1.0 },
+    hitH: { type: 'number', default: 1.0 },
+    hitD: { type: 'number', default: 1.0 },
+    hitY: { type: 'number', default: 0   }
+  },
+
+  init: function () {
+    const el   = this.el;
+    const data = this.data;
+
+    // ── 1. HITBOX ────────────────────────────────────────────────
+    const hitbox = document.createElement('a-box');
+    hitbox.setAttribute('width',    data.hitW);
+    hitbox.setAttribute('height',   data.hitH);
+    hitbox.setAttribute('depth',    data.hitD);
+    hitbox.setAttribute('position', `0 ${data.hitY} 0`);
+    hitbox.classList.add('dwell-target');
+    hitbox.setAttribute('material', 'opacity:0;transparent:true;side:double');
+    el.appendChild(hitbox);
+    this.hitbox = hitbox;
+
+    // ── 2. ÉTAT ──────────────────────────────────────────────────
+    this._rotating     = false;
+    this._rotSpeed     = 45;
+    this._baseY        = (el.getAttribute('rotation') || { y: 0 }).y;
+    this._currentY     = this._baseY;
+    this._lastTime     = null;
+    this._rafId        = null;
+    this._panelOpen    = false;
+    this._autoDismiss  = null;
+
+    // ── 3. RÉFÉRENCES PANNEAU & BOUTON ───────────────────────────
+    this.panel  = data.previewPanelId
+      ? document.getElementById(data.previewPanelId) : null;
+    this.btnHit = this.panel
+      ? this.panel.querySelector('.btn-immersif-hit') : null;
+
+    // Bouton immersif — events attachés une seule fois à l'init
+    // Le bouton ne peut être intersecté que si visible="true"
+    if (this.btnHit) {
+      this.btnHit.addEventListener('mouseenter', () => {
+        clearTimeout(this._autoDismiss);
+        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+          detail: {
+            ms: 5000,
+            onComplete: () => {
+              this._hidePanel();
+              el.sceneEl.emit('launch-360', { label: data.video360Label });
+            }
+          }
+        }));
+      });
+      this.btnHit.addEventListener('mouseleave', () => {
+        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+        // Redémarrer le compte à rebours d'auto-fermeture
+        if (this._panelOpen) {
+          clearTimeout(this._autoDismiss);
+          this._autoDismiss = setTimeout(() => this._hidePanel(), 5000);
+        }
+      });
+    }
+
+    // ── 4. EVENTS HITBOX ─────────────────────────────────────────
+    hitbox.addEventListener('mouseenter', () => {
+      // Rotation immédiate dès le survol
+      this._rotating = true;
+      this._lastTime = null;
+      if (!this._rafId) this._tick();
+
+      // Dwell 2 s pour ouvrir le panneau (seulement si pas déjà ouvert)
+      if (!this._panelOpen) {
+        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+          detail: { ms: 2000, onComplete: () => this._showPanel() }
+        }));
+      }
+    });
+
+    hitbox.addEventListener('mouseleave', () => {
+      this._rotating = false;
+      cancelAnimationFrame(this._rafId);
+      this._rafId = null;
+      el.setAttribute('animation__returnrot', {
+        property: 'rotation', to: `0 ${this._baseY} 0`,
+        dur: 500, easing: 'easeOutQuad'
+      });
+      // Si panneau pas encore ouvert → annuler le dwell
+      // Si panneau ouvert → l'utilisateur va vers le bouton, ne pas annuler
+      if (!this._panelOpen) {
+        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+      }
+    });
+  },
+
+  _showPanel: function () {
+    if (!this.panel || this._panelOpen) return;
+    this._panelOpen = true;
+
+    // Stopper la rotation au moment de l'ouverture
+    this._rotating = false;
+    cancelAnimationFrame(this._rafId);
+    this._rafId = null;
+    this.el.setAttribute('animation__returnrot', {
+      property: 'rotation', to: `0 ${this._baseY} 0`,
+      dur: 400, easing: 'easeOutQuad'
+    });
+
+    // Animer le panneau (scale 0 → 1)
+    this.panel.setAttribute('scale', '0.001 0.001 0.001');
+    this.panel.setAttribute('visible', true);
+    this.panel.setAttribute('animation__appear', {
+      property: 'scale', from: '0.001 0.001 0.001', to: '1 1 1',
+      dur: 380, easing: 'easeOutBack'
+    });
+
+    // Lancer la vidéo preview (muette)
+    const vid = document.getElementById('vid-preview');
+    if (vid) { vid.muted = true; vid.loop = true; vid.play().catch(() => {}); }
+
+    // Activer le bouton immersif (devient raycaster-intersectable)
+    if (this.btnHit) this.btnHit.setAttribute('visible', true);
+
+    // Auto-fermeture après 8 s d'inactivité
+    clearTimeout(this._autoDismiss);
+    this._autoDismiss = setTimeout(() => this._hidePanel(), 8000);
+  },
+
+  _hidePanel: function () {
+    if (!this.panel || !this._panelOpen) return;
+    this._panelOpen = false;
+    clearTimeout(this._autoDismiss);
+    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+    // Désactiver le bouton (invisible = non-intersectable)
+    if (this.btnHit) this.btnHit.setAttribute('visible', false);
+
+    // Animer la fermeture (scale → 0)
+    this.panel.setAttribute('animation__appear', {
+      property: 'scale', to: '0.001 0.001 0.001', dur: 220, easing: 'easeInQuad'
+    });
+    setTimeout(() => {
+      if (this.panel) this.panel.setAttribute('visible', false);
+    }, 240);
+
+    // Arrêter la vidéo
+    const vid = document.getElementById('vid-preview');
+    if (vid) { vid.pause(); vid.currentTime = 0; }
+  },
+
+  _tick: function () {
+    this._rafId = requestAnimationFrame(() => {
+      const now = performance.now();
+      const dt  = this._lastTime ? (now - this._lastTime) / 1000 : 0;
+      this._lastTime = now;
+      if (this._rotating) {
+        this._currentY += this._rotSpeed * dt;
+        this.el.setAttribute('rotation', `0 ${this._currentY} 0`);
+        this._tick();
+      }
+    });
+  },
+
+  remove: function () {
+    cancelAnimationFrame(this._rafId);
+    clearTimeout(this._autoDismiss);
+  }
+});
+
+/* ================================================================
+   IMMERSIVE-MANAGER — sur <a-scene>
+
+   Sortie du mode immersif via DEUX mécanismes :
+   1. Bouton HTML CSS (#exit-overlay) → toujours visible, tap → exit
+   2. Bouton monde 3D (#return-world-hit) dwell 2 s → exit
+   ================================================================ */
+AFRAME.registerComponent('immersive-manager', {
+  init: function () {
+    const sceneEl = this.el;
+    this._isImmersive = false;
+
+    sceneEl.addEventListener('launch-360', (e) => this._enter(e.detail));
+
+    // ── Bouton HTML (hors A-Frame, priorité maximale) ──
+    const exitBtn = document.getElementById('exit-overlay');
+    if (exitBtn) {
+      exitBtn.addEventListener('click',     () => this._exit());
+      exitBtn.addEventListener('touchend',  (e) => { e.preventDefault(); this._exit(); });
+    }
+
+    // ── Bouton monde 3D (dwell 2 s, espace monde) ──
+    const rHit = document.getElementById('return-world-hit');
+    if (rHit) {
+      rHit.addEventListener('mouseenter', () => {
+        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+          detail: { ms: 2000, onComplete: () => this._exit() }
+        }));
+      });
+      rHit.addEventListener('mouseleave', () => {
+        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+      });
+    }
+  },
+
+  _enter: function (detail) {
+    this._isImmersive = true;
+
+    // Fermer tous les panneaux + réinitialiser le dwell
+    document.querySelectorAll('[id^="panel-"]').forEach(p => {
+      p.setAttribute('visible', false);
+    });
+    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+    // Cacher le hub
+    document.getElementById('main-group').setAttribute('visible', false);
+
+    // Démarrer la vidéo 360
+    const v = document.getElementById('vid-360');
+    if (v) {
+      v.muted = false; v.currentTime = 0;
+      v.play().catch(() => { v.muted = true; v.play(); });
+    }
+
+    // Afficher la sphère 360 (A-Frame + Three.js direct pour fiabilité)
+    const sphere = document.getElementById('sphere-360');
+    sphere.setAttribute('visible', true);
+    sphere.object3D.visible = true;
+
+    // Afficher le bouton retour monde
+    const wb = document.getElementById('return-world-btn');
+    if (wb) wb.setAttribute('visible', true);
+    const wbh = document.getElementById('return-world-hit');
+    if (wbh) wbh.setAttribute('visible', true);
+
+    // Afficher le bouton HTML CSS
+    const exitBtn = document.getElementById('exit-overlay');
+    if (exitBtn) exitBtn.style.display = 'block';
+    const hint = document.getElementById('immersive-hint');
+    if (hint) hint.style.display = 'block';
+  },
+
+  _exit: function () {
+    if (!this._isImmersive) return;
+    this._isImmersive = false;
+
+    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+    // Arrêter la vidéo
+    const v = document.getElementById('vid-360');
+    if (v) { v.pause(); v.currentTime = 0; }
+
+    // Cacher la sphère 360 – via A-Frame ET Three.js direct
+    const sphere = document.getElementById('sphere-360');
+    sphere.setAttribute('visible', false);
+    sphere.object3D.visible = false;
+
+    // Cacher le bouton retour monde
+    const wb  = document.getElementById('return-world-btn');
+    if (wb)  wb.setAttribute('visible', false);
+    const wbh = document.getElementById('return-world-hit');
+    if (wbh) wbh.setAttribute('visible', false);
+
+    // Cacher le bouton HTML et le hint
+    const exitBtn = document.getElementById('exit-overlay');
+    if (exitBtn) exitBtn.style.display = 'none';
+    const hint = document.getElementById('immersive-hint');
+    if (hint) hint.style.display = 'none';
+
+    // Réafficher le hub
+    document.getElementById('main-group').setAttribute('visible', true);
+  }
+});
+</script>
+
+<!-- ================================================================
+     SCÈNE
+     ================================================================ -->
+<!-- ── BOUTON RETOUR HTML (hors A-Frame) ── -->
+<button id="exit-overlay">← Retour au Hub</button>
+<div id="immersive-hint">Appuyez sur le bouton ou regardez ← pour revenir</div>
+
+<a-scene background="color: #D8D8D8" immersive-manager>
+
+  <a-assets timeout="30000">
+    <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
+    <a-asset-item id="boxes-model"     src="assets/models/cardboard/Cardboard Boxes.glb"></a-asset-item>
+    <a-asset-item id="flowerpot-model" src="assets/models/flower/Flower Pot.glb"></a-asset-item>
+    <a-asset-item id="bottle-model"    src="assets/models/plastic/Bottle.glb"></a-asset-item>
+    <!-- Vidéo preview (muette) -->
+    <video id="vid-preview" src="assets/videos/360_stock.mp4"
+           preload="auto" muted loop crossorigin="anonymous" playsinline></video>
+    <!-- Vidéo 360° immersive -->
+    <video id="vid-360" src="assets/videos/360_stock.mp4"
+           preload="auto" crossorigin="anonymous" playsinline></video>
+  </a-assets>
+
+  <!-- ── CAMÉRA ──────────────────────────────────────────────────
+       gaze-wheel : dessine la roue de décompte canvas sur le camera object3D
+       Le cursor <a-cursor> est INVISIBLE (géométrie nulle), il sert
+       uniquement au raycasting sur les éléments .dwell-target          -->
+  <a-camera id="camera" position="0 1.8 0" look-controls wasd-controls gaze-wheel>
+    <!--
+      Cursor invisible – sert uniquement au raycasting des .dwell-target.
+      Le visuel du curseur est dessiné par gaze-wheel (canvas Three.js).
+      Aucun élément d'UI n'est enfant de la caméra → ils ne suivent pas la tête.
+    -->
+    <a-cursor fuse="false"
+              raycaster="objects: .dwell-target; far: 10; near: 0.1"
+              position="0 0 -1"
+              geometry="primitive: ring; radiusInner: 0.0001; radiusOuter: 0.00015"
+              material="color:#000000; opacity:0; transparent:true">
+    </a-cursor>
+  </a-camera>
+
+  <!-- ── VIDEOSPHERE 360° ── -->
+  <a-videosphere id="sphere-360" src="#vid-360" rotation="0 -90 0" visible="false">
+  </a-videosphere>
+
+  <!-- ── BOUTON RETOUR EN ESPACE MONDE (visible uniquement en mode immersif)
+       Fixé dans le monde 3D, NE bouge PAS avec la tête.
+       Droit devant la position initiale du viewer (Z=-3).
+       Le bouton HTML (#exit-overlay) est le mécanisme principal (tap).
+       Ce bouton monde ajoute un décompte visuel via gaze-wheel (dwell 2 s). ── -->
+  <a-entity id="return-world-btn" visible="false" position="0 1.05 -3">
+    <!-- Fond bleu -->
+    <a-plane width="1.4" height="0.36" color="#1565C0"></a-plane>
+    <!-- Texte -->
+    <a-text value="←  Retour au Hub" align="center" color="#FFFFFF"
+            width="3.2" position="0 0 0.02"></a-text>
+    <!-- Sous-texte dwell -->
+    <a-text value="( regardez 2 secondes )"
+            align="center" color="rgba(255,255,255,0.6)"
+            width="2" position="0 -0.24 0.02"></a-text>
+  </a-entity>
+  <!-- Hitbox du bouton monde -->
+  <a-plane id="return-world-hit" class="dwell-target"
+           width="1.5" height="0.70"
+           material="opacity:0;transparent:true"
+           position="0 1.05 -2.99"
+           visible="false">
+  </a-plane>
+
+  <!-- ================================================================
+       PANNEAUX PREVIEW EN ESPACE MONDE (fixes, ne tournent pas)
+       Position = au-dessus de l'objet correspondant
+       Rotation = orienté vers l'origine (là où se tient le viewer)
+
+       STRUCTURE DE CHAQUE PANNEAU :
+         ┌─────────────────────────────┐
+         │      [vidéo preview]        │
+         │      nom de l'objet         │
+         │   [ ▶ Mode Immersif 360° ]  │  ← bouton rouge
+         └─────────────────────────────┘
+       Le bouton (.btn-immersif-hit) est invisible au départ →
+       il n'est pas intersectable par le raycaster.
+       Il devient visible (= intersectable) uniquement quand
+       gaze-interact._showPanel() est appelé.
+       ================================================================ -->
+
+  <!-- PANNEAU TRICYCLE  ─ objet à (-1.77, 1.5, -1.77), rotation Y=45° -->
+  <a-entity id="panel-tricycle" visible="false"
+            position="-1.77 2.75 -1.77" rotation="0 45 0"
+            scale="0.001 0.001 0.001">
+    <a-plane width="1.74" height="1.04" color="#111111"></a-plane>
+    <a-video  src="#vid-preview" width="1.6" height="0.9" position="0 0.06 0.01"></a-video>
+    <a-text   value="Tricycle – Métal" align="center" color="#CCCCCC"
+              width="2.6" position="0 -0.42 0.01"></a-text>
+    <!-- Bouton immersif -->
+    <a-entity position="0 -0.63 0.01">
+      <a-plane width="1.32" height="0.23" color="#E53935"></a-plane>
+      <a-text  value="▶  Mode Immersif 360°" align="center" color="#FFFFFF"
+               width="3.3" position="0 0 0.01"></a-text>
+      <!-- Hitbox du bouton – INVISIBLE au départ → raycaster ignore -->
+      <a-plane class="btn-immersif-hit dwell-target"
+               width="1.38" height="0.30"
+               material="opacity:0;transparent:true"
+               position="0 0 0.02"
+               visible="false">
+      </a-plane>
+    </a-entity>
+  </a-entity>
+
+  <!-- PANNEAU CARTONS  ─ objet à (-0.65, 1.5, -2.41), rotation Y=15° -->
+  <a-entity id="panel-cartons" visible="false"
+            position="-0.65 2.75 -2.41" rotation="0 15 0"
+            scale="0.001 0.001 0.001">
+    <a-plane width="1.74" height="1.04" color="#111111"></a-plane>
+    <a-video  src="#vid-preview" width="1.6" height="0.9" position="0 0.06 0.01"></a-video>
+    <a-text   value="Cartons – Carton" align="center" color="#CCCCCC"
+              width="2.6" position="0 -0.42 0.01"></a-text>
+    <a-entity position="0 -0.63 0.01">
+      <a-plane width="1.32" height="0.23" color="#E53935"></a-plane>
+      <a-text  value="▶  Mode Immersif 360°" align="center" color="#FFFFFF"
+               width="3.3" position="0 0 0.01"></a-text>
+      <a-plane class="btn-immersif-hit dwell-target"
+               width="1.38" height="0.30"
+               material="opacity:0;transparent:true"
+               position="0 0 0.02"
+               visible="false">
+      </a-plane>
+    </a-entity>
+  </a-entity>
+
+  <!-- PANNEAU POT DE FLEUR  ─ objet à (0.65, 1.5, -2.41), rotation Y=-15° -->
+  <a-entity id="panel-pot-fleur" visible="false"
+            position="0.65 2.75 -2.41" rotation="0 -15 0"
+            scale="0.001 0.001 0.001">
+    <a-plane width="1.74" height="1.04" color="#111111"></a-plane>
+    <a-video  src="#vid-preview" width="1.6" height="0.9" position="0 0.06 0.01"></a-video>
+    <a-text   value="Pot de fleur – Terre cuite" align="center" color="#CCCCCC"
+              width="2.6" position="0 -0.42 0.01"></a-text>
+    <a-entity position="0 -0.63 0.01">
+      <a-plane width="1.32" height="0.23" color="#E53935"></a-plane>
+      <a-text  value="▶  Mode Immersif 360°" align="center" color="#FFFFFF"
+               width="3.3" position="0 0 0.01"></a-text>
+      <a-plane class="btn-immersif-hit dwell-target"
+               width="1.38" height="0.30"
+               material="opacity:0;transparent:true"
+               position="0 0 0.02"
+               visible="false">
+      </a-plane>
+    </a-entity>
+  </a-entity>
+
+  <!-- PANNEAU BOUTEILLE  ─ objet à (1.77, 1.5, -1.77), rotation Y=-45° -->
+  <a-entity id="panel-bouteille" visible="false"
+            position="1.77 2.75 -1.77" rotation="0 -45 0"
+            scale="0.001 0.001 0.001">
+    <a-plane width="1.74" height="1.04" color="#111111"></a-plane>
+    <a-video  src="#vid-preview" width="1.6" height="0.9" position="0 0.06 0.01"></a-video>
+    <a-text   value="Bouteille – Plastique" align="center" color="#CCCCCC"
+              width="2.6" position="0 -0.42 0.01"></a-text>
+    <a-entity position="0 -0.63 0.01">
+      <a-plane width="1.32" height="0.23" color="#E53935"></a-plane>
+      <a-text  value="▶  Mode Immersif 360°" align="center" color="#FFFFFF"
+               width="3.3" position="0 0 0.01"></a-text>
+      <a-plane class="btn-immersif-hit dwell-target"
+               width="1.38" height="0.30"
+               material="opacity:0;transparent:true"
+               position="0 0 0.02"
+               visible="false">
+      </a-plane>
+    </a-entity>
+  </a-entity>
+
+  <!-- ================================================================
+       SCÈNE PRINCIPALE
+       ================================================================ -->
+  <a-entity id="main-group">
+
+    <!-- 1. TRICYCLE – Métal -->
+    <a-entity id="tricycle"
+      gltf-model="#tricycle-model"
+      position="-1.77 1.5 -1.77" scale="1 1 1" rotation="0 45 0"
+      gaze-interact="previewPanelId:panel-tricycle; video360Label:Tricycle – Métal;
+                     hitW:0.9; hitH:0.75; hitD:0.7; hitY:0.3"
+      shadow>
+    </a-entity>
+
+    <!-- 2. CARTONS – Carton -->
+    <a-entity id="cartons"
+      gltf-model="#boxes-model"
+      position="-0.65 1.5 -2.41" scale="0.5 0.5 0.5" rotation="0 15 0"
+      gaze-interact="previewPanelId:panel-cartons; video360Label:Cartons – Carton;
+                     hitW:0.9; hitH:0.64; hitD:0.8; hitY:0.32"
+      shadow>
+    </a-entity>
+
+    <!-- 3. POT DE FLEUR – Terre cuite -->
+    <a-entity id="pot-fleur"
+      gltf-model="#flowerpot-model"
+      position="0.65 1.5 -2.41" scale="0.3 0.3 0.3" rotation="0 -30 0"
+      gaze-interact="previewPanelId:panel-pot-fleur; video360Label:Pot de fleur – Terre cuite;
+                     hitW:1.17; hitH:1.4; hitD:1.17; hitY:0.7"
+      shadow>
+    </a-entity>
+
+    <!-- 4. BOUTEILLE – Plastique -->
+    <a-entity id="bouteille"
+      gltf-model="#bottle-model"
+      position="1.77 1.5 -1.77" scale="0.18 0.18 0.18" rotation="0 0 0"
+      gaze-interact="previewPanelId:panel-bouteille; video360Label:Bouteille – Plastique;
+                     hitW:1.22; hitH:2.0; hitD:1.22; hitY:1.0"
+      shadow>
+    </a-entity>
+
+    <!-- SOL -->
+    <a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20"
+             color="#BDBDBD" shadow="receive: true"></a-plane>
+
+    <!-- ÉCLAIRAGE -->
+    <a-light type="ambient"     color="#FFFFFF" intensity="0.6"></a-light>
+    <a-light type="directional" color="#FFFFFF" intensity="0.8"
+             position="-1 3 2" cast-shadow="true"></a-light>
+
+    <!-- INSTRUCTION -->
+    <a-text value="Regardez un objet pendant 2 secondes"
+            align="center" color="#666666" width="3" position="0 0.42 -2.8">
+    </a-text>
+
+  </a-entity>
+
+</a-scene>
+</body>
+</html>

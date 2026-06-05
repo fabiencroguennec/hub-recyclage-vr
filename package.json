@@ -1,0 +1,13 @@
+{
+  "name": "hub-recyclage-vr",
+  "version": "1.0.0",
+  "description": "Serveur local avec tunnel HTTPS et QR Code pour Prototype VR A-Frame",
+  "main": "share.js",
+  "scripts": {
+    "start": "node share.js"
+  },
+  "dependencies": {
+    "localtunnel": "^2.0.2",
+    "qrcode-terminal": "^0.12.0"
+  }
+}
