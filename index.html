@@ -193,6 +193,13 @@ AFRAME.registerComponent('gaze-interact', {
     el.appendChild(hitbox);
     this.hitbox = hitbox;
 
+    // Écouter si un autre objet demande la fermeture des panneaux
+    el.sceneEl.addEventListener('close-other-panels', (e) => {
+      if (e.detail.excludeId !== el.id && this._panelOpen) {
+        this._hidePanel();
+      }
+    });
+
     // ── 2. ÉTAT ──────────────────────────────────────────────────
     this._rotating     = false;
     this._rotSpeed     = 45;
@@ -236,6 +243,9 @@ AFRAME.registerComponent('gaze-interact', {
 
     // ── 4. EVENTS HITBOX ─────────────────────────────────────────
     hitbox.addEventListener('mouseenter', () => {
+      // Fermer les panneaux des autres objets immédiatement
+      el.sceneEl.emit('close-other-panels', { excludeId: el.id });
+
       // Rotation immédiate dès le survol
       this._rotating = true;
       this._lastTime = null;
@@ -302,7 +312,6 @@ AFRAME.registerComponent('gaze-interact', {
     if (!this.panel || !this._panelOpen) return;
     this._panelOpen = false;
     clearTimeout(this._autoDismiss);
-    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
 
     // Désactiver le bouton (invisible = non-intersectable)
     if (this.btnHit) this.btnHit.setAttribute('visible', false);
