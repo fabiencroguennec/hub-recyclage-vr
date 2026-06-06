@@ -417,13 +417,14 @@ AFRAME.registerComponent('cuepoint-manager', {
     if (!text) return; // Annulé
 
     const cameraEl = document.getElementById('camera');
-    const cameraObj = cameraEl.object3D;
+    // En VR ou WebXR, la vraie caméra est récupérée via getObject3D
+    const cameraObj = cameraEl.getObject3D('camera') || cameraEl.object3D;
     
-    // Direction
-    const dir = new THREE.Vector3(0, 0, -1);
-    dir.applyQuaternion(cameraObj.quaternion);
+    // Direction du regard
+    const dir = new THREE.Vector3();
+    cameraObj.getWorldDirection(dir);
     
-    // Position (4 mètres devant)
+    // Position (4 mètres devant la caméra)
     const distance = 4;
     const pos = new THREE.Vector3();
     cameraObj.getWorldPosition(pos);
@@ -489,12 +490,22 @@ AFRAME.registerComponent('cuepoint-manager', {
     const el = document.createElement('a-entity');
     el.setAttribute('position', `${cp.position.x} ${cp.position.y} ${cp.position.z}`);
     
+    // S'assurer que le cuepoint fait face à la caméra
+    // On crée un composant à la volée ou on utilise un event
     el.addEventListener('loaded', () => {
       const cameraEl = document.getElementById('camera');
       const target = new THREE.Vector3();
       cameraEl.object3D.getWorldPosition(target);
       el.object3D.lookAt(target);
       el.object3D.rotateY(Math.PI);
+      
+      // Mettre à jour l'attribut rotation pour qu'A-Frame le prenne en compte
+      const euler = new THREE.Euler().setFromQuaternion(el.object3D.quaternion, 'YXZ');
+      el.setAttribute('rotation', {
+        x: THREE.MathUtils.radToDeg(euler.x),
+        y: THREE.MathUtils.radToDeg(euler.y),
+        z: THREE.MathUtils.radToDeg(euler.z)
+      });
     });
     
     el.setAttribute('cuepoint-interact', `id: ${cp.id}`);
