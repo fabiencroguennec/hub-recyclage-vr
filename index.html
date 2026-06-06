@@ -361,14 +361,13 @@ AFRAME.registerComponent('cuepoint-interact', {
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
       
-      // Lancer le décompte de 1s avec la roue visuelle
+      // Lancer le décompte de 1s avec la roue visuelle (identique au bouton retour)
       document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
         detail: {
           ms: 1000,
           onComplete: () => {
-            // Afficher le texte après 1s
-            if (this.el.textBg) this.el.textBg.setAttribute('visible', 'true');
-            if (this.el.textContent) this.el.textContent.setAttribute('visible', 'true');
+            // Le décompte est terminé. L'utilisateur peut appuyer sur A.
+            // On peut ajouter une animation ou un son ici plus tard.
           }
         }
       }));
@@ -378,10 +377,8 @@ AFRAME.registerComponent('cuepoint-interact', {
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.clearHoveredCuepoint(this.data.id);
       
-      // Interrompre le décompte ou cacher le texte
+      // Interrompre le décompte
       document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-      if (this.el.textBg) this.el.textBg.setAttribute('visible', 'false');
-      if (this.el.textContent) this.el.textContent.setAttribute('visible', 'false');
     });
   }
 });
@@ -510,51 +507,40 @@ AFRAME.registerComponent('cuepoint-manager', {
     
     el.setAttribute('cuepoint-interact', `id: ${cp.id}`);
     
-    // Hitbox (plus large que le point pour être facile à viser)
-    const hitbox = document.createElement('a-plane');
-    hitbox.className = 'dwell-target';
-    hitbox.setAttribute('width', '2');
-    hitbox.setAttribute('height', '1.5');
-    hitbox.setAttribute('material', 'opacity: 0; transparent: true');
-    hitbox.setAttribute('position', '0 0 0.05');
-    el.appendChild(hitbox);
-    
-    // Point visuel (ex: cercle d'information)
-    const circle = document.createElement('a-circle');
-    circle.setAttribute('radius', '0.15');
-    circle.setAttribute('color', '#FF9800'); // Orange
-    el.appendChild(circle);
-    
-    // Croix ou i dans le cercle
-    const icon = document.createElement('a-text');
-    icon.setAttribute('value', 'i');
-    icon.setAttribute('align', 'center');
-    icon.setAttribute('color', '#FFFFFF');
-    icon.setAttribute('width', '3');
-    icon.setAttribute('position', '0 0 0.01');
-    circle.appendChild(icon);
-    
-    // Fond texte
+    // Code à l'identique de la balise "Retour au Hub"
+    // Fond bleu
     const bg = document.createElement('a-plane');
-    bg.setAttribute('width', '1.8');
-    bg.setAttribute('height', '0.4');
-    bg.setAttribute('color', 'rgba(0,0,0,0.8)');
-    bg.setAttribute('position', '0 -0.35 0');
-    bg.setAttribute('visible', 'false');
+    bg.setAttribute('width', '1.4');
+    bg.setAttribute('height', '0.36');
+    bg.setAttribute('color', '#1565C0');
     el.appendChild(bg);
     
-    // Texte saisi
+    // Texte principal
     const textEl = document.createElement('a-text');
     textEl.setAttribute('value', cp.text);
     textEl.setAttribute('align', 'center');
-    textEl.setAttribute('width', '2.5');
-    textEl.setAttribute('position', '0 -0.35 0.02');
-    textEl.setAttribute('visible', 'false');
+    textEl.setAttribute('color', '#FFFFFF');
+    textEl.setAttribute('width', '3.2');
+    textEl.setAttribute('position', '0 0 0.02');
     el.appendChild(textEl);
+
+    // Sous-texte dwell
+    const subText = document.createElement('a-text');
+    subText.setAttribute('value', '( ciblez 1s et pressez A pour supprimer )');
+    subText.setAttribute('align', 'center');
+    subText.setAttribute('color', 'rgba(255,255,255,0.6)');
+    subText.setAttribute('width', '2');
+    subText.setAttribute('position', '0 -0.24 0.02');
+    el.appendChild(subText);
     
-    // Sauvegarde des références pour l'affichage interactif
-    el.textBg = bg;
-    el.textContent = textEl;
+    // Hitbox du bouton
+    const hitbox = document.createElement('a-plane');
+    hitbox.className = 'dwell-target';
+    hitbox.setAttribute('width', '1.5');
+    hitbox.setAttribute('height', '0.70');
+    hitbox.setAttribute('material', 'opacity: 0; transparent: true');
+    hitbox.setAttribute('position', '0 0 0.05');
+    el.appendChild(hitbox);
     
     el.classList.add('rendered-cuepoint');
     this.el.appendChild(el);
