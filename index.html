@@ -354,30 +354,45 @@ AFRAME.registerComponent('gaze-interact', {
 AFRAME.registerComponent('cuepoint-interact', {
   schema: { id: { type: 'string' } },
   init: function () {
+    // Récupérer les sous-entités après que A-Frame les a initialisées
+    setTimeout(() => {
+      this.glow    = this.el.querySelector('.cp-glow');
+      this.tooltip = this.el.querySelector('.cp-tooltip');
+    }, 100);
+
     this.el.addEventListener('mouseenter', () => {
-      // Effet visuel immédiat
-      this.el.setAttribute('scale', '1.15 1.15 1.15');
-      // Notifier le manager
+      this.el.setAttribute('scale', '1.1 1.1 1.1');
+      // Augmenter le glow
+      if (this.glow) {
+        this.glow.setAttribute('material',
+          'color:#62efff; opacity:0.45; transparent:true; emissive:#62efff; emissiveIntensity:1.6; side:double; blending:additive');
+      }
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
-      
-      // Lancer le décompte de 1s avec la roue visuelle (identique au bouton retour)
+
+      // Décompte 1s → ouvre le tooltip
       document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
         detail: {
           ms: 1000,
           onComplete: () => {
-            // Le décompte est terminé. L'utilisateur peut appuyer sur A.
-            // On peut ajouter une animation ou un son ici plus tard.
+            if (this.tooltip) this.tooltip.setAttribute('visible', 'true');
           }
         }
       }));
     });
+
     this.el.addEventListener('mouseleave', () => {
       this.el.setAttribute('scale', '1 1 1');
+      // Réduire le glow
+      if (this.glow) {
+        this.glow.setAttribute('material',
+          'color:#29b6f6; opacity:0.18; transparent:true; emissive:#29b6f6; emissiveIntensity:0.6; side:double; blending:additive');
+      }
+      // Masquer le tooltip
+      if (this.tooltip) this.tooltip.setAttribute('visible', 'false');
+
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.clearHoveredCuepoint(this.data.id);
-      
-      // Interrompre le décompte
       document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
     });
   }
@@ -484,13 +499,13 @@ AFRAME.registerComponent('cuepoint-manager', {
   },
 
   renderCuepoint: function (cp) {
-    // Calculer la rotation Y pour que le panneau fasse face au viewer (position 0,y,0)
-    // On prend l'angle horizontal entre le cuepoint et le centre de la scène
+    // Rotation Y : le tooltip/fond fait face au viewer (0,y,0)
     const dx = 0 - cp.position.x;
     const dz = 0 - cp.position.z;
     const rotY = Math.atan2(dx, dz) * (180 / Math.PI);
 
-    // Créer l'entité via innerHTML — beaucoup plus fiable que les appendChild dynamiques en A-Frame
+    const safeText = cp.text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
     const wrapper = document.createElement('div');
     wrapper.innerHTML = `
       <a-entity
@@ -499,14 +514,38 @@ AFRAME.registerComponent('cuepoint-manager', {
         rotation="0 ${rotY} 0"
         data-cpid="${cp.id}"
         cuepoint-interact="id: ${cp.id}">
-        <!-- Fond bleu — identique au bouton Retour au Hub -->
-        <a-plane width="1.4" height="0.36" color="#1565C0"></a-plane>
-        <!-- Texte principal -->
-        <a-text value="${cp.text.replace(/"/g,'&quot;')}" align="center" color="#FFFFFF" width="3.2" position="0 0 0.02"></a-text>
-        <!-- Sous-texte aide -->
-        <a-text value="( fix 1s + A pour supprimer )" align="center" color="rgba(255,255,255,0.6)" width="2" position="0 -0.24 0.02"></a-text>
-        <!-- Hitbox invisible -->
-        <a-plane class="dwell-target" width="1.5" height="0.70" material="opacity:0;transparent:true" position="0 0 0.05"></a-plane>
+
+        <!-- Aura glow (sphère transparente additive) -->
+        <a-sphere class="cp-glow" radius="0.22"
+          material="color:#29b6f6; opacity:0.18; transparent:true;
+                    emissive:#29b6f6; emissiveIntensity:0.6;
+                    side:double; blending:additive">
+        </a-sphere>
+
+        <!-- Cube diamant posé sur une pointe — rotation 45/45 + animation lente -->
+        <a-box class="cp-cube"
+          width="0.22" height="0.22" depth="0.22"
+          rotation="45 0 45"
+          material="color:#62efff; metalness:0.9; roughness:0.05;
+                    emissive:#1565C0; emissiveIntensity:0.5; envMapIntensity:1.0"
+          animation="property:rotation; from:45 0 45; to:45 360 45;
+                     dur:20000; loop:true; easing:linear">
+        </a-box>
+
+        <!-- Infobulle (cachée par défaut, visible après 1s de regard) -->
+        <a-entity class="cp-tooltip" position="0 0.48 0" visible="false">
+          <a-plane width="1.4" height="0.36" color="#1565C0"></a-plane>
+          <a-text value="${safeText}"
+                  align="center" color="#FFFFFF"
+                  width="3.2" position="0 0 0.02">
+          </a-text>
+        </a-entity>
+
+        <!-- Hitbox invisible (sphère pour être facile à viser dans toutes directions) -->
+        <a-sphere class="dwell-target" radius="0.30"
+          material="opacity:0; transparent:true">
+        </a-sphere>
+
       </a-entity>`;
     const el = wrapper.firstElementChild;
     this.el.appendChild(el);
@@ -658,7 +697,7 @@ AFRAME.registerComponent('immersive-manager', {
 <button id="exit-overlay">← Retour au Hub</button>
 <div id="immersive-hint">Appuyez sur le bouton ou regardez ← pour revenir</div>
 
-<a-scene background="color: #D8D8D8" immersive-manager cuepoint-manager>
+<a-scene background="color: #D8D8D8" immersive-manager cuepoint-manager video-envmap>
 
   <a-assets timeout="30000">
     <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
