@@ -349,6 +349,198 @@ AFRAME.registerComponent('gaze-interact', {
 });
 
 /* ================================================================
+   CUEPOINT-INTERACT — sur chaque cuepoint
+   ================================================================ */
+AFRAME.registerComponent('cuepoint-interact', {
+  schema: { id: { type: 'string' } },
+  init: function () {
+    this.el.addEventListener('mouseenter', () => {
+      // Effet visuel
+      this.el.setAttribute('scale', '1.15 1.15 1.15');
+      // Notifier le manager
+      const manager = this.el.sceneEl.components['cuepoint-manager'];
+      if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
+    });
+    this.el.addEventListener('mouseleave', () => {
+      this.el.setAttribute('scale', '1 1 1');
+      const manager = this.el.sceneEl.components['cuepoint-manager'];
+      if (manager) manager.clearHoveredCuepoint(this.data.id);
+    });
+  }
+});
+
+/* ================================================================
+   CUEPOINT-MANAGER — sur <a-scene>
+   ================================================================ */
+AFRAME.registerComponent('cuepoint-manager', {
+  init: function () {
+    this.cuepoints = [];
+    this.currentVideoId = null;
+    this.hoveredCuepointId = null;
+    this.hoveredCuepointEl = null;
+    this._onKeyDown = this._onKeyDown.bind(this);
+    window.addEventListener('keydown', this._onKeyDown);
+  },
+  
+  _onKeyDown: function (e) {
+    const im = this.el.components['immersive-manager'];
+    if (!im || !im._isImmersive) return;
+
+    if (e.key.toLowerCase() === 'q') {
+      this.addCuepoint();
+    } else if (e.key.toLowerCase() === 'a') {
+      this.removeHoveredCuepoint();
+    }
+  },
+
+  addCuepoint: function () {
+    if (!this.currentVideoId) return;
+    
+    const text = prompt("Texte du cuepoint :");
+    if (!text) return; // Annulé
+
+    const cameraEl = document.getElementById('camera');
+    const cameraObj = cameraEl.object3D;
+    
+    // Direction
+    const dir = new THREE.Vector3(0, 0, -1);
+    dir.applyQuaternion(cameraObj.quaternion);
+    
+    // Position (4 mètres devant)
+    const distance = 4;
+    const pos = new THREE.Vector3();
+    cameraObj.getWorldPosition(pos);
+    pos.add(dir.multiplyScalar(distance));
+
+    const cuepoint = {
+      id: 'cp_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+      text: text,
+      position: { x: pos.x, y: pos.y, z: pos.z }
+    };
+
+    this.cuepoints.push(cuepoint);
+    this.saveToStorage();
+    this.renderCuepoint(cuepoint);
+  },
+
+  removeHoveredCuepoint: function () {
+    if (!this.hoveredCuepointId) return;
+    this.cuepoints = this.cuepoints.filter(cp => cp.id !== this.hoveredCuepointId);
+    this.saveToStorage();
+    
+    if (this.hoveredCuepointEl && this.hoveredCuepointEl.parentNode) {
+      this.hoveredCuepointEl.parentNode.removeChild(this.hoveredCuepointEl);
+    }
+    this.hoveredCuepointId = null;
+    this.hoveredCuepointEl = null;
+  },
+
+  setHoveredCuepoint: function (id, el) {
+    this.hoveredCuepointId = id;
+    this.hoveredCuepointEl = el;
+  },
+  
+  clearHoveredCuepoint: function (id) {
+    if (this.hoveredCuepointId === id) {
+      this.hoveredCuepointId = null;
+      this.hoveredCuepointEl = null;
+    }
+  },
+
+  loadCuepointsForVideo: function (videoId) {
+    this.currentVideoId = videoId;
+    this.clearAllRendered();
+    
+    const data = localStorage.getItem('cuepoints_' + videoId);
+    if (data) {
+      try { this.cuepoints = JSON.parse(data); }
+      catch(e) { this.cuepoints = []; }
+    } else {
+      this.cuepoints = [];
+    }
+    
+    this.cuepoints.forEach(cp => this.renderCuepoint(cp));
+  },
+
+  saveToStorage: function () {
+    if (this.currentVideoId) {
+      localStorage.setItem('cuepoints_' + this.currentVideoId, JSON.stringify(this.cuepoints));
+    }
+  },
+
+  renderCuepoint: function (cp) {
+    const el = document.createElement('a-entity');
+    el.setAttribute('position', `${cp.position.x} ${cp.position.y} ${cp.position.z}`);
+    
+    el.addEventListener('loaded', () => {
+      const cameraEl = document.getElementById('camera');
+      const target = new THREE.Vector3();
+      cameraEl.object3D.getWorldPosition(target);
+      el.object3D.lookAt(target);
+      el.object3D.rotateY(Math.PI);
+    });
+    
+    el.setAttribute('cuepoint-interact', `id: ${cp.id}`);
+    
+    // Hitbox (plus large que le point pour être facile à viser)
+    const hitbox = document.createElement('a-plane');
+    hitbox.className = 'dwell-target';
+    hitbox.setAttribute('width', '2');
+    hitbox.setAttribute('height', '1.5');
+    hitbox.setAttribute('material', 'opacity: 0; transparent: true');
+    hitbox.setAttribute('position', '0 0 0.05');
+    el.appendChild(hitbox);
+    
+    // Point visuel (ex: cercle d'information)
+    const circle = document.createElement('a-circle');
+    circle.setAttribute('radius', '0.15');
+    circle.setAttribute('color', '#FF9800'); // Orange
+    el.appendChild(circle);
+    
+    // Croix ou i dans le cercle
+    const icon = document.createElement('a-text');
+    icon.setAttribute('value', 'i');
+    icon.setAttribute('align', 'center');
+    icon.setAttribute('color', '#FFFFFF');
+    icon.setAttribute('width', '3');
+    icon.setAttribute('position', '0 0 0.01');
+    circle.appendChild(icon);
+    
+    // Fond texte
+    const bg = document.createElement('a-plane');
+    bg.setAttribute('width', '1.8');
+    bg.setAttribute('height', '0.4');
+    bg.setAttribute('color', 'rgba(0,0,0,0.8)');
+    bg.setAttribute('position', '0 -0.35 0');
+    el.appendChild(bg);
+    
+    // Texte saisi
+    const textEl = document.createElement('a-text');
+    textEl.setAttribute('value', cp.text);
+    textEl.setAttribute('align', 'center');
+    textEl.setAttribute('width', '2.5');
+    textEl.setAttribute('position', '0 -0.35 0.02');
+    el.appendChild(textEl);
+    
+    el.classList.add('rendered-cuepoint');
+    this.el.appendChild(el);
+  },
+
+  clearAllRendered: function () {
+    const rendered = this.el.querySelectorAll('.rendered-cuepoint');
+    rendered.forEach(el => {
+      if (el.parentNode) el.parentNode.removeChild(el);
+    });
+    this.hoveredCuepointId = null;
+    this.hoveredCuepointEl = null;
+  },
+
+  remove: function () {
+    window.removeEventListener('keydown', this._onKeyDown);
+  }
+});
+
+/* ================================================================
    IMMERSIVE-MANAGER — sur <a-scene>
 
    Sortie du mode immersif via DEUX mécanismes :
@@ -406,6 +598,10 @@ AFRAME.registerComponent('immersive-manager', {
     if (v) {
       v.muted = false; v.currentTime = 0;
       v.play().catch(() => { v.muted = true; v.play(); });
+      
+      // Charger les cuepoints de cette vidéo
+      const cm = this.el.components['cuepoint-manager'];
+      if (cm) cm.loadCuepointsForVideo(v.getAttribute('src'));
     }
 
     // Afficher la sphère 360 (A-Frame + Three.js direct pour fiabilité)
@@ -431,6 +627,10 @@ AFRAME.registerComponent('immersive-manager', {
     this._isImmersive = false;
 
     document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+    // Nettoyer les cuepoints 3D de la scène
+    const cm = this.el.components['cuepoint-manager'];
+    if (cm) cm.clearAllRendered();
 
     // Arrêter la vidéo
     const v = document.getElementById('vid-360');
@@ -472,7 +672,7 @@ AFRAME.registerComponent('immersive-manager', {
 <button id="exit-overlay">← Retour au Hub</button>
 <div id="immersive-hint">Appuyez sur le bouton ou regardez ← pour revenir</div>
 
-<a-scene background="color: #D8D8D8" immersive-manager>
+<a-scene background="color: #D8D8D8" immersive-manager cuepoint-manager>
 
   <a-assets timeout="30000">
     <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
