@@ -392,8 +392,14 @@ AFRAME.registerComponent('immersive-manager', {
     });
     document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
 
-    // Cacher le hub
-    document.getElementById('main-group').setAttribute('visible', false);
+    // Cacher le hub de façon stricte + désactiver ses hitboxes
+    const mainGroup = document.getElementById('main-group');
+    mainGroup.setAttribute('visible', false);
+    mainGroup.object3D.visible = false;
+    mainGroup.querySelectorAll('.dwell-target').forEach(el => {
+      el.classList.remove('dwell-target');
+      el.classList.add('dwell-target-disabled');
+    });
 
     // Démarrer la vidéo 360
     const v = document.getElementById('vid-360');
@@ -447,8 +453,14 @@ AFRAME.registerComponent('immersive-manager', {
     const hint = document.getElementById('immersive-hint');
     if (hint) hint.style.display = 'none';
 
-    // Réafficher le hub
-    document.getElementById('main-group').setAttribute('visible', true);
+    // Réafficher le hub et réactiver ses hitboxes
+    const mainGroup = document.getElementById('main-group');
+    mainGroup.setAttribute('visible', true);
+    mainGroup.object3D.visible = true;
+    mainGroup.querySelectorAll('.dwell-target-disabled').forEach(el => {
+      el.classList.remove('dwell-target-disabled');
+      el.classList.add('dwell-target');
+    });
   }
 });
 </script>
