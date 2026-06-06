@@ -355,16 +355,33 @@ AFRAME.registerComponent('cuepoint-interact', {
   schema: { id: { type: 'string' } },
   init: function () {
     this.el.addEventListener('mouseenter', () => {
-      // Effet visuel
+      // Effet visuel immédiat
       this.el.setAttribute('scale', '1.15 1.15 1.15');
       // Notifier le manager
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
+      
+      // Lancer le décompte de 1s avec la roue visuelle
+      document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+        detail: {
+          ms: 1000,
+          onComplete: () => {
+            // Afficher le texte après 1s
+            if (this.el.textBg) this.el.textBg.setAttribute('visible', 'true');
+            if (this.el.textContent) this.el.textContent.setAttribute('visible', 'true');
+          }
+        }
+      }));
     });
     this.el.addEventListener('mouseleave', () => {
       this.el.setAttribute('scale', '1 1 1');
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.clearHoveredCuepoint(this.data.id);
+      
+      // Interrompre le décompte ou cacher le texte
+      document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+      if (this.el.textBg) this.el.textBg.setAttribute('visible', 'false');
+      if (this.el.textContent) this.el.textContent.setAttribute('visible', 'false');
     });
   }
 });
@@ -512,6 +529,7 @@ AFRAME.registerComponent('cuepoint-manager', {
     bg.setAttribute('height', '0.4');
     bg.setAttribute('color', 'rgba(0,0,0,0.8)');
     bg.setAttribute('position', '0 -0.35 0');
+    bg.setAttribute('visible', 'false');
     el.appendChild(bg);
     
     // Texte saisi
@@ -520,7 +538,12 @@ AFRAME.registerComponent('cuepoint-manager', {
     textEl.setAttribute('align', 'center');
     textEl.setAttribute('width', '2.5');
     textEl.setAttribute('position', '0 -0.35 0.02');
+    textEl.setAttribute('visible', 'false');
     el.appendChild(textEl);
+    
+    // Sauvegarde des références pour l'affichage interactif
+    el.textBg = bg;
+    el.textContent = textEl;
     
     el.classList.add('rendered-cuepoint');
     this.el.appendChild(el);
