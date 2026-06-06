@@ -361,12 +361,12 @@ AFRAME.registerComponent('cuepoint-interact', {
     }, 100);
 
     this.el.addEventListener('mouseenter', () => {
-      this.el.setAttribute('scale', '1.1 1.1 1.1');
-      // Augmenter le glow
-      if (this.glow) {
-        this.glow.setAttribute('material',
-          'color:#62efff; opacity:0.45; transparent:true; emissive:#62efff; emissiveIntensity:1.6; side:double; blending:additive');
-      }
+      this.el.setAttribute('scale', '1.12 1.12 1.12');
+      // Intensifier l'émissive du cube au survol
+      const cube = this.el.querySelector('.cp-cube');
+      if (cube) cube.setAttribute('material',
+        'color:#ffffff; metalness:1.0; roughness:0.0; opacity:0.55; transparent:true; emissive:#62efff; emissiveIntensity:0.9; envMapIntensity:1.0; side:double');
+
       const manager = this.el.sceneEl.components['cuepoint-manager'];
       if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
 
@@ -383,11 +383,10 @@ AFRAME.registerComponent('cuepoint-interact', {
 
     this.el.addEventListener('mouseleave', () => {
       this.el.setAttribute('scale', '1 1 1');
-      // Réduire le glow
-      if (this.glow) {
-        this.glow.setAttribute('material',
-          'color:#29b6f6; opacity:0.18; transparent:true; emissive:#29b6f6; emissiveIntensity:0.6; side:double; blending:additive');
-      }
+      // Réduire l'émissive
+      const cube = this.el.querySelector('.cp-cube');
+      if (cube) cube.setAttribute('material',
+        'color:#ffffff; metalness:1.0; roughness:0.0; opacity:0.55; transparent:true; emissive:#29b6f6; emissiveIntensity:0.25; envMapIntensity:1.0; side:double');
       // Masquer le tooltip
       if (this.tooltip) this.tooltip.setAttribute('visible', 'false');
 
@@ -515,19 +514,15 @@ AFRAME.registerComponent('cuepoint-manager', {
         data-cpid="${cp.id}"
         cuepoint-interact="id: ${cp.id}">
 
-        <!-- Aura glow (sphère transparente additive) -->
-        <a-sphere class="cp-glow" radius="0.22"
-          material="color:#29b6f6; opacity:0.18; transparent:true;
-                    emissive:#29b6f6; emissiveIntensity:0.6;
-                    side:double; blending:additive">
-        </a-sphere>
-
         <!-- Cube diamant posé sur une pointe — rotation 45/45 + animation lente -->
+        <!-- Transparent, métal pur, réflexion maximale -->
         <a-box class="cp-cube"
           width="0.22" height="0.22" depth="0.22"
           rotation="45 0 45"
-          material="color:#62efff; metalness:0.9; roughness:0.05;
-                    emissive:#1565C0; emissiveIntensity:0.5; envMapIntensity:1.0"
+          material="color:#ffffff; metalness:1.0; roughness:0.0;
+                    opacity:0.55; transparent:true;
+                    emissive:#29b6f6; emissiveIntensity:0.25;
+                    envMapIntensity:1.0; side:double"
           animation="property:rotation; from:45 0 45; to:45 360 45;
                      dur:20000; loop:true; easing:linear">
         </a-box>
