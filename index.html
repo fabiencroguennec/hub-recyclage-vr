@@ -484,65 +484,31 @@ AFRAME.registerComponent('cuepoint-manager', {
   },
 
   renderCuepoint: function (cp) {
-    const el = document.createElement('a-entity');
-    el.setAttribute('position', `${cp.position.x} ${cp.position.y} ${cp.position.z}`);
-    
-    // S'assurer que le cuepoint fait face à la caméra
-    // On crée un composant à la volée ou on utilise un event
-    el.addEventListener('loaded', () => {
-      const cameraEl = document.getElementById('camera');
-      const target = new THREE.Vector3();
-      cameraEl.object3D.getWorldPosition(target);
-      el.object3D.lookAt(target);
-      el.object3D.rotateY(Math.PI);
-      
-      // Mettre à jour l'attribut rotation pour qu'A-Frame le prenne en compte
-      const euler = new THREE.Euler().setFromQuaternion(el.object3D.quaternion, 'YXZ');
-      el.setAttribute('rotation', {
-        x: THREE.MathUtils.radToDeg(euler.x),
-        y: THREE.MathUtils.radToDeg(euler.y),
-        z: THREE.MathUtils.radToDeg(euler.z)
-      });
-    });
-    
-    el.setAttribute('cuepoint-interact', `id: ${cp.id}`);
-    
-    // Code à l'identique de la balise "Retour au Hub"
-    // Fond bleu
-    const bg = document.createElement('a-plane');
-    bg.setAttribute('width', '1.4');
-    bg.setAttribute('height', '0.36');
-    bg.setAttribute('color', '#1565C0');
-    el.appendChild(bg);
-    
-    // Texte principal
-    const textEl = document.createElement('a-text');
-    textEl.setAttribute('value', cp.text);
-    textEl.setAttribute('align', 'center');
-    textEl.setAttribute('color', '#FFFFFF');
-    textEl.setAttribute('width', '3.2');
-    textEl.setAttribute('position', '0 0 0.02');
-    el.appendChild(textEl);
+    // Calculer la rotation Y pour que le panneau fasse face au viewer (position 0,y,0)
+    // On prend l'angle horizontal entre le cuepoint et le centre de la scène
+    const dx = 0 - cp.position.x;
+    const dz = 0 - cp.position.z;
+    const rotY = Math.atan2(dx, dz) * (180 / Math.PI);
 
-    // Sous-texte dwell
-    const subText = document.createElement('a-text');
-    subText.setAttribute('value', '( ciblez 1s et pressez A pour supprimer )');
-    subText.setAttribute('align', 'center');
-    subText.setAttribute('color', 'rgba(255,255,255,0.6)');
-    subText.setAttribute('width', '2');
-    subText.setAttribute('position', '0 -0.24 0.02');
-    el.appendChild(subText);
-    
-    // Hitbox du bouton
-    const hitbox = document.createElement('a-plane');
-    hitbox.className = 'dwell-target';
-    hitbox.setAttribute('width', '1.5');
-    hitbox.setAttribute('height', '0.70');
-    hitbox.setAttribute('material', 'opacity: 0; transparent: true');
-    hitbox.setAttribute('position', '0 0 0.05');
-    el.appendChild(hitbox);
-    
-    el.classList.add('rendered-cuepoint');
+    // Créer l'entité via innerHTML — beaucoup plus fiable que les appendChild dynamiques en A-Frame
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = `
+      <a-entity
+        class="rendered-cuepoint"
+        position="${cp.position.x} ${cp.position.y} ${cp.position.z}"
+        rotation="0 ${rotY} 0"
+        data-cpid="${cp.id}"
+        cuepoint-interact="id: ${cp.id}">
+        <!-- Fond bleu — identique au bouton Retour au Hub -->
+        <a-plane width="1.4" height="0.36" color="#1565C0"></a-plane>
+        <!-- Texte principal -->
+        <a-text value="${cp.text.replace(/"/g,'&quot;')}" align="center" color="#FFFFFF" width="3.2" position="0 0 0.02"></a-text>
+        <!-- Sous-texte aide -->
+        <a-text value="( fix 1s + A pour supprimer )" align="center" color="rgba(255,255,255,0.6)" width="2" position="0 -0.24 0.02"></a-text>
+        <!-- Hitbox invisible -->
+        <a-plane class="dwell-target" width="1.5" height="0.70" material="opacity:0;transparent:true" position="0 0 0.05"></a-plane>
+      </a-entity>`;
+    const el = wrapper.firstElementChild;
     this.el.appendChild(el);
   },
 
