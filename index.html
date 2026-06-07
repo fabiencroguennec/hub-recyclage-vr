@@ -217,13 +217,12 @@ AFRAME.registerComponent('gaze-interact', {
       ? this.panel.querySelector('.btn-immersif-hit') : null;
 
     // Bouton immersif — events attachés une seule fois à l'init
-    // Le bouton ne peut être intersecté que si visible="true"
     if (this.btnHit) {
       this.btnHit.addEventListener('mouseenter', () => {
         clearTimeout(this._autoDismiss);
         document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
           detail: {
-            ms: 5000,
+            ms: 2000,
             onComplete: () => {
               this._hidePanel();
               el.sceneEl.emit('launch-360', { label: data.video360Label });
