@@ -707,31 +707,9 @@ AFRAME.registerComponent('cuepoint-interact', {
   }
 });
 
-/* ================================================================
-   VIDEO-ENVMAP — applique la vidéo 360 comme envmap HDR
-   ================================================================ */
-AFRAME.registerComponent('video-envmap', {
-  init: function () {
-    this.el.addEventListener('renderstart', () => {
-      const vid = document.getElementById('vid-360');
-      if (!vid) return;
-      const renderer = this.el.sceneEl.renderer;
-      const videoTexture = new THREE.VideoTexture(vid);
-      videoTexture.mapping = THREE.EquirectangularReflectionMapping;
-      if (THREE.SRGBColorSpace) videoTexture.colorSpace = THREE.SRGBColorSpace;
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      pmrem.compileEquirectangularShader();
-      const envMap = pmrem.fromEquirectangular(videoTexture).texture;
-      this.el.sceneEl.object3D.environment = envMap;
-      this._envMap = envMap;
-      pmrem.dispose();
-    });
-  },
-  remove: function () {
-    if (this._envMap) this._envMap.dispose();
-    this.el.sceneEl.object3D.environment = null;
-  }
-});
+/* video-envmap supprimé : PMREMGenerator génère un shader GLSL avec
+   'Infinity' non supporté en WebGL1 (Three.js r158 / A-Frame 1.5)
+   Le matériau metalness/roughness fonctionne sans envmap explicite */
 
 /* ================================================================
    CUEPOINT-MANAGER — sur <a-scene>
@@ -1004,7 +982,7 @@ AFRAME.registerComponent('immersive-manager', {
 <!-- ================================================================
      SCÈNE
      ================================================================ -->
-<a-scene background="color: #1a1c22" immersive-manager cuepoint-manager video-envmap>
+<a-scene background="color: #1a1c22" immersive-manager cuepoint-manager>
 
   <a-assets timeout="30000">
     <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
@@ -1060,7 +1038,7 @@ AFRAME.registerComponent('immersive-manager', {
     <a-text value="Tricycle" align="center" color="#e8f4fd"
             width="2.8" position="0 -0.41 0.01"
             font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="MÉTAL" align="center" color="rgba(41,182,246,0.7)"
+    <a-text value="MÉTAL" align="center" color="#3aacdc"
             width="1.6" position="0 -0.52 0.01"></a-text>
     <!-- Bouton immersif redesigné -->
     <a-entity position="0 -0.68 0.01">
@@ -1091,7 +1069,7 @@ AFRAME.registerComponent('immersive-manager', {
     <a-text value="Cartons" align="center" color="#e8f4fd"
             width="2.8" position="0 -0.41 0.01"
             font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="CARTON" align="center" color="rgba(41,182,246,0.7)"
+    <a-text value="CARTON" align="center" color="#3aacdc"
             width="1.6" position="0 -0.52 0.01"></a-text>
     <a-entity position="0 -0.68 0.01">
       <a-plane width="1.38" height="0.22"
@@ -1119,7 +1097,7 @@ AFRAME.registerComponent('immersive-manager', {
     <a-text value="Pot de fleur" align="center" color="#e8f4fd"
             width="2.8" position="0 -0.41 0.01"
             font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="TERRE CUITE" align="center" color="rgba(41,182,246,0.7)"
+    <a-text value="TERRE CUITE" align="center" color="#3aacdc"
             width="1.6" position="0 -0.52 0.01"></a-text>
     <a-entity position="0 -0.68 0.01">
       <a-plane width="1.38" height="0.22"
@@ -1147,7 +1125,7 @@ AFRAME.registerComponent('immersive-manager', {
     <a-text value="Bouteille" align="center" color="#e8f4fd"
             width="2.8" position="0 -0.41 0.01"
             font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="PLASTIQUE" align="center" color="rgba(41,182,246,0.7)"
+    <a-text value="PLASTIQUE" align="center" color="#3aacdc"
             width="1.6" position="0 -0.52 0.01"></a-text>
     <a-entity position="0 -0.68 0.01">
       <a-plane width="1.38" height="0.22"
