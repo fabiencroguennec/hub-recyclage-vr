@@ -861,19 +861,6 @@ AFRAME.registerComponent('immersive-manager', {
       exitBtn.addEventListener('click',    () => this._exit());
       exitBtn.addEventListener('touchend', (e) => { e.preventDefault(); this._exit(); });
     }
-
-    // Bouton monde 3D (hitbox invisible en fallback)
-    const rHit = document.getElementById('return-world-hit');
-    if (rHit) {
-      rHit.addEventListener('mouseenter', () => {
-        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
-          detail: { ms: 2000, onComplete: () => this._exit() }
-        }));
-      });
-      rHit.addEventListener('mouseleave', () => {
-        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-      });
-    }
   },
 
   _enter: function (detail) {
@@ -904,11 +891,6 @@ AFRAME.registerComponent('immersive-manager', {
     sphere.setAttribute('visible', true);
     sphere.object3D.visible = true;
 
-    // Cacher le bouton monde (remplacé par le HUD HTML)
-    const wb = document.getElementById('return-world-btn');
-    if (wb) wb.setAttribute('visible', false);
-    const wbh = document.getElementById('return-world-hit');
-    if (wbh) wbh.setAttribute('visible', false);
 
     // Afficher le HUD immersif, masquer le HUD hub
     document.getElementById('hud-hub').style.display = 'none';
@@ -984,16 +966,6 @@ AFRAME.registerComponent('immersive-manager', {
   <a-videosphere id="sphere-360" src="#vid-360" rotation="0 -90 0" visible="false">
   </a-videosphere>
 
-  <!-- Hitbox retour monde (fallback gaze, masqué dans la nouvelle UI) -->
-  <a-plane id="return-world-hit" class="dwell-target"
-           width="1.5" height="0.70"
-           material="opacity:0;transparent:true"
-           position="0 1.05 -2.99"
-           visible="false">
-  </a-plane>
-
-  <!-- Entité retour hub monde (vide maintenant, juste pour compat) -->
-  <a-entity id="return-world-btn" visible="false"></a-entity>
 
   <!-- ================================================================
        PANNEAUX PREVIEW redesignés — Luxury Minimal
