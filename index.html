@@ -8,6 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- Three.js r158 post-processing (doit correspondre a la version bundlée dans A-Frame 1.5) -->
+  <script src="https://unpkg.com/three@0.158.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://unpkg.com/three@0.158.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://unpkg.com/three@0.158.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://unpkg.com/three@0.158.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://unpkg.com/three@0.158.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://unpkg.com/three@0.158.0/examples/js/postprocessing/ShaderPass.js"></script>
   <style>
     :root {
       --glass-bg:    rgba(10, 12, 18, 0.72);
@@ -846,6 +853,81 @@ AFRAME.registerComponent('cuepoint-manager', {
 });
 
 /* ================================================================
+   BLOOM-PASS — post-processing UnrealBloom sur <a-scene>
+   Strength : intensité du bloom (0–2)
+   Radius   : étalement du halo (0–1)
+   Threshold: seuil de luminosité déclenchant le bloom (0–1)
+   ================================================================ */
+AFRAME.registerComponent('bloom-pass', {
+  schema: {
+    strength:  { type: 'number', default: 0.9 },
+    radius:    { type: 'number', default: 0.5 },
+    threshold: { type: 'number', default: 0.08 }
+  },
+
+  init: function () {
+    this._composer = null;
+    this._ready    = false;
+    this.el.sceneEl.addEventListener('renderstart', () => this._setup());
+  },
+
+  _setup: function () {
+    const sceneEl  = this.el.sceneEl;
+    const renderer = sceneEl.renderer;
+    const scene    = sceneEl.object3D;
+    const data     = this.data;
+
+    // Vérifier que les classes de post-processing sont disponibles
+    if (!THREE.EffectComposer || !THREE.UnrealBloomPass) {
+      console.warn('[bloom-pass] THREE.EffectComposer ou UnrealBloomPass non chargés');
+      return;
+    }
+
+    const w = renderer.domElement.clientWidth  || window.innerWidth;
+    const h = renderer.domElement.clientHeight || window.innerHeight;
+
+    this._composer = new THREE.EffectComposer(renderer);
+
+    // Passe de rendu normal
+    const renderPass = new THREE.RenderPass(scene, sceneEl.camera);
+    this._composer.addPass(renderPass);
+
+    // Passe bloom
+    this._bloomPass = new THREE.UnrealBloomPass(
+      new THREE.Vector2(w, h),
+      data.strength,
+      data.radius,
+      data.threshold
+    );
+    this._composer.addPass(this._bloomPass);
+
+    // Remplacer le render A-Frame par le composer
+    const origRender = renderer.render.bind(renderer);
+    renderer.render = () => {}; // no-op : on dessine via le composer dans tick
+    this._origRender = origRender;
+
+    // Conserver la référence caméra dynamique (peut changer)
+    this._sceneEl = sceneEl;
+    this._ready   = true;
+    console.log('[bloom-pass] activé — strength:', data.strength, 'radius:', data.radius, 'threshold:', data.threshold);
+  },
+
+  tick: function () {
+    if (!this._ready || !this._composer) return;
+    // Mettre à jour la caméra (peut avoir changé si VR activé)
+    const cam = this._sceneEl.camera;
+    if (cam) this._composer.passes[0].camera = cam;
+    this._composer.render();
+  },
+
+  remove: function () {
+    if (this._origRender && this.el.sceneEl.renderer) {
+      this.el.sceneEl.renderer.render = this._origRender;
+    }
+  }
+});
+
+/* ================================================================
    IMMERSIVE-MANAGER — sur <a-scene>
    ================================================================ */
 AFRAME.registerComponent('immersive-manager', {
@@ -941,7 +1023,12 @@ AFRAME.registerComponent('immersive-manager', {
 <!-- ================================================================
      SCÈNE
      ================================================================ -->
-<a-scene background="color: #1a1c22" immersive-manager cuepoint-manager>
+<a-scene
+  background="color: #1a1c22"
+  immersive-manager
+  cuepoint-manager
+  bloom-pass="strength: 0.9; radius: 0.5; threshold: 0.08"
+  inspector="url: https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js">
 
   <a-assets timeout="30000">
     <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
