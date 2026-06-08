@@ -498,10 +498,8 @@ AFRAME.registerComponent('gaze-interact', {
       this._rotating = false;
       cancelAnimationFrame(this._rafId);
       this._rafId = null;
-      el.setAttribute('animation__returnrot', {
-        property: 'rotation', to: `0 ${this._baseY} 0`,
-        dur: 700, easing: 'easeOutQuad'
-      });
+      el.setAttribute('animation__returnrot',
+        `property: rotation; to: 0 ${this._baseY} 0; dur: 700; easing: easeOutQuad`);
       if (!this._panelOpen) {
         document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
       }
@@ -515,17 +513,13 @@ AFRAME.registerComponent('gaze-interact', {
     this._rotating = false;
     cancelAnimationFrame(this._rafId);
     this._rafId = null;
-    this.el.setAttribute('animation__returnrot', {
-      property: 'rotation', to: `0 ${this._baseY} 0`,
-      dur: 500, easing: 'easeOutQuad'
-    });
+    this.el.setAttribute('animation__returnrot',
+      `property: rotation; to: 0 ${this._baseY} 0; dur: 500; easing: easeOutQuad`);
 
     this.panel.setAttribute('scale', '0.001 0.001 0.001');
     this.panel.setAttribute('visible', true);
-    this.panel.setAttribute('animation__appear', {
-      property: 'scale', from: '0.001 0.001 0.001', to: '1 1 1',
-      dur: 500, easing: 'easeOutBack'
-    });
+    this.panel.setAttribute('animation__appear',
+      'property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 500; easing: easeOutBack');
 
     const vid = document.getElementById('vid-preview');
     if (vid) vid.play().catch(() => {});
@@ -542,10 +536,8 @@ AFRAME.registerComponent('gaze-interact', {
     clearTimeout(this._autoDismiss);
     document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
 
-    this.panel.setAttribute('animation__disappear', {
-      property: 'scale', from: '1 1 1', to: '0.001 0.001 0.001',
-      dur: 380, easing: 'easeInBack'
-    });
+    this.panel.setAttribute('animation__disappear',
+      'property: scale; from: 1 1 1; to: 0.001 0.001 0.001; dur: 380; easing: easeInBack');
     setTimeout(() => {
       this.panel.setAttribute('visible', false);
       if (this.btnHit) this.btnHit.setAttribute('visible', false);
@@ -585,31 +577,24 @@ AFRAME.registerComponent('cuepoint-interact', {
   _doJump: function () {
     const pos = this.el.getAttribute('position');
     const y0  = this.baseY !== undefined ? this.baseY : pos.y;
-    this.el.setAttribute('animation__jump', {
-      property: 'position', to: `${pos.x} ${y0 + 0.18} ${pos.z}`,
-      dur: 250, easing: 'easeOutQuad', startEvents: 'none'
-    });
-    this.el.setAttribute('animation__squash', {
-      property: 'scale', to: '0.9 1.18 0.9',
-      dur: 250, easing: 'easeOutQuad', startEvents: 'none'
-    });
+    // Phase 1 : montée + étirement
+    this.el.setAttribute('animation__jump',
+      `property: position; to: ${pos.x} ${y0 + 0.18} ${pos.z}; dur: 250; easing: easeOutQuad`);
+    this.el.setAttribute('animation__squash',
+      'property: scale; to: 0.9 1.18 0.9; dur: 250; easing: easeOutQuad');
+    // Phase 2 : chute
     setTimeout(() => {
       if (!this._hovering) return;
-      this.el.setAttribute('animation__jump', {
-        property: 'position', to: `${pos.x} ${y0} ${pos.z}`,
-        dur: 320, easing: 'easeInBounce', startEvents: 'none'
-      });
-      this.el.setAttribute('animation__squash', {
-        property: 'scale', to: '1.15 0.88 1.15',
-        dur: 200, easing: 'easeOutQuad', startEvents: 'none'
-      });
+      this.el.setAttribute('animation__jump',
+        `property: position; to: ${pos.x} ${y0} ${pos.z}; dur: 320; easing: easeInQuad`);
+      this.el.setAttribute('animation__squash',
+        'property: scale; to: 1.15 0.88 1.15; dur: 200; easing: easeOutQuad');
     }, 260);
+    // Phase 3 : rebond retour
     setTimeout(() => {
       if (!this._hovering) return;
-      this.el.setAttribute('animation__squash', {
-        property: 'scale', to: '1 1 1',
-        dur: 350, easing: 'easeOutElastic', startEvents: 'none'
-      });
+      this.el.setAttribute('animation__squash',
+        'property: scale; to: 1 1 1; dur: 400; easing: easeOutBack');
     }, 470);
   },
 
@@ -619,11 +604,6 @@ AFRAME.registerComponent('cuepoint-interact', {
     clearTimeout(this._hideTimer);
     if (this.tooltip) {
       this.tooltip.setAttribute('visible', 'true');
-      // Fade via opacity animation
-      this.tooltip.setAttribute('animation__fadein', {
-        property: 'components.material.material.opacity',
-        from: 0, to: 1, dur: 400, easing: 'easeOutQuad', startEvents: 'none'
-      });
     }
   },
 
@@ -638,13 +618,7 @@ AFRAME.registerComponent('cuepoint-interact', {
     if (!this._tooltipVisible) return;
     this._tooltipVisible = false;
     if (this.tooltip) {
-      this.tooltip.setAttribute('animation__fadeout', {
-        property: 'components.material.material.opacity',
-        from: 1, to: 0, dur: 500, easing: 'easeInQuad', startEvents: 'none'
-      });
-      setTimeout(() => {
-        if (!this._tooltipVisible) this.tooltip.setAttribute('visible', 'false');
-      }, 520);
+      this.tooltip.setAttribute('visible', 'false');
     }
   },
 
@@ -686,9 +660,8 @@ AFRAME.registerComponent('cuepoint-interact', {
       this._setCubeEmissive('#29b6f6', 0.9);
       this._setLight(1.0);
       this.el.removeAttribute('animation__jump');
-      this.el.setAttribute('animation__squash', {
-        property: 'scale', to: '1 1 1', dur: 300, easing: 'easeOutElastic', startEvents: 'none'
-      });
+      this.el.setAttribute('animation__squash',
+        'property: scale; to: 1 1 1; dur: 300; easing: easeOutBack');
 
       // Cacher le tooltip après 2s si le curseur ne revient pas
       this._hideTooltipDelayed();
