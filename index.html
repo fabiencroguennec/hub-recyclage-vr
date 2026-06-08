@@ -1082,7 +1082,7 @@ AFRAME.registerComponent('immersive-manager', {
   inspector="url: https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js">
 
   <a-assets timeout="30000">
-    <a-asset-item id="bike-model"  src="assets/models/bike/01/scene.gltf"></a-asset-item>
+    <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
     <a-asset-item id="boxes-model"     src="assets/models/cardboard/Cardboard Boxes.glb"></a-asset-item>
     <a-asset-item id="flowerpot-model" src="assets/models/flower/Flower Pot.glb"></a-asset-item>
     <a-asset-item id="bottle-model"    src="assets/models/plastic/Bottle.glb"></a-asset-item>
@@ -1109,9 +1109,9 @@ AFRAME.registerComponent('immersive-manager', {
        PANNEAUX PREVIEW redesignés — Luxury Minimal
        ================================================================ -->
 
-  <!-- PANNEAU VELO -->
-  <a-entity id="panel-bike" visible="false"
-            position="-1.77 2.9 -1.77" rotation="0 45 0"
+  <!-- PANNEAU TRICYCLE -->
+  <a-entity id="panel-tricycle" visible="false"
+            position="-1.77 1.4 -1.77" rotation="0 45 0"
             scale="0.001 0.001 0.001">
     <!-- Fond glassmorphism sombre -->
     <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
@@ -1122,7 +1122,7 @@ AFRAME.registerComponent('immersive-manager', {
     <!-- Vidéo preview -->
     <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
     <!-- Nom sobrement typé -->
-    <a-text value="Vélo" align="center" color="#e8f4fd"
+    <a-text value="Tricycle" align="center" color="#e8f4fd"
             width="2.8" position="0 -0.41 0.01"
             font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
     <a-text value="MÉTAL" align="center" color="#3aacdc"
@@ -1146,7 +1146,7 @@ AFRAME.registerComponent('immersive-manager', {
 
   <!-- PANNEAU CARTONS -->
   <a-entity id="panel-cartons" visible="false"
-            position="-0.65 2.9 -2.41" rotation="0 15 0"
+            position="-0.65 1.4 -2.41" rotation="0 15 0"
             scale="0.001 0.001 0.001">
     <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
              material="transparent:true; side:double"></a-plane>
@@ -1174,7 +1174,7 @@ AFRAME.registerComponent('immersive-manager', {
 
   <!-- PANNEAU POT DE FLEUR -->
   <a-entity id="panel-pot-fleur" visible="false"
-            position="0.65 2.9 -2.41" rotation="0 -15 0"
+            position="0.65 1.4 -2.41" rotation="0 -15 0"
             scale="0.001 0.001 0.001">
     <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
              material="transparent:true; side:double"></a-plane>
@@ -1202,7 +1202,7 @@ AFRAME.registerComponent('immersive-manager', {
 
   <!-- PANNEAU BOUTEILLE -->
   <a-entity id="panel-bouteille" visible="false"
-            position="1.77 2.9 -1.77" rotation="0 -45 0"
+            position="1.77 1.4 -1.77" rotation="0 -45 0"
             scale="0.001 0.001 0.001">
     <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
              material="transparent:true; side:double"></a-plane>
@@ -1233,11 +1233,11 @@ AFRAME.registerComponent('immersive-manager', {
        ================================================================ -->
   <a-entity id="main-group">
 
-    <!-- 1. VELO -->
-    <a-entity id="bike"
-      gltf-model="#bike-model"
-      position="-1.77 1.5 -1.77" scale="1 1 1" rotation="0 45 0"
-      gaze-interact="previewPanelId:panel-bike; video360Label:Vélo – Métal;
+    <!-- 1. TRICYCLE -->
+    <a-entity id="tricycle"
+      gltf-model="#tricycle-model"
+      position="-1.77 0 -1.77" scale="1 1 1" rotation="0 45 0"
+      gaze-interact="previewPanelId:panel-tricycle; video360Label:Tricycle – Métal;
                      hitW:0.9; hitH:0.75; hitD:0.7; hitY:0.3"
       shadow>
     </a-entity>
@@ -1245,7 +1245,7 @@ AFRAME.registerComponent('immersive-manager', {
     <!-- 2. CARTONS -->
     <a-entity id="cartons"
       gltf-model="#boxes-model"
-      position="-0.65 1.5 -2.41" scale="0.5 0.5 0.5" rotation="0 15 0"
+      position="-0.65 0 -2.41" scale="0.5 0.5 0.5" rotation="0 15 0"
       gaze-interact="previewPanelId:panel-cartons; video360Label:Cartons – Carton;
                      hitW:0.9; hitH:0.64; hitD:0.8; hitY:0.32"
       shadow>
@@ -1254,7 +1254,7 @@ AFRAME.registerComponent('immersive-manager', {
     <!-- 3. POT DE FLEUR -->
     <a-entity id="pot-fleur"
       gltf-model="#flowerpot-model"
-      position="0.65 1.5 -2.41" scale="0.3 0.3 0.3" rotation="0 -30 0"
+      position="0.65 0 -2.41" scale="0.3 0.3 0.3" rotation="0 -30 0"
       gaze-interact="previewPanelId:panel-pot-fleur; video360Label:Pot de fleur – Terre cuite;
                      hitW:1.17; hitH:1.4; hitD:1.17; hitY:0.7"
       shadow>
@@ -1263,7 +1263,7 @@ AFRAME.registerComponent('immersive-manager', {
     <!-- 4. BOUTEILLE -->
     <a-entity id="bouteille"
       gltf-model="#bottle-model"
-      position="1.77 1.5 -1.77" scale="0.18 0.18 0.18" rotation="0 0 0"
+      position="1.77 0 -1.77" scale="0.18 0.18 0.18" rotation="0 0 0"
       gaze-interact="previewPanelId:panel-bouteille; video360Label:Bouteille – Plastique;
                      hitW:1.22; hitH:2.0; hitD:1.22; hitY:1.0"
       shadow>
