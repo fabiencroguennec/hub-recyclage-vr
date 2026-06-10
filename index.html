@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Hub Recyclage – Prototype VR</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Space+Grotesk:wght@400;600&display=swap"
+    rel="stylesheet">
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <!-- Three.js r158 post-processing (doit correspondre a la version bundlée dans A-Frame 1.5) -->
   <script src="https://unpkg.com/three@0.158.0/examples/js/postprocessing/EffectComposer.js"></script>
@@ -17,19 +20,27 @@
   <script src="https://unpkg.com/three@0.158.0/examples/js/postprocessing/ShaderPass.js"></script>
   <style>
     :root {
-      --glass-bg:    rgba(10, 12, 18, 0.72);
+      --glass-bg: rgba(10, 12, 18, 0.72);
       --glass-border: rgba(255, 255, 255, 0.09);
-      --accent:      #29b6f6;
-      --accent-dim:  rgba(41, 182, 246, 0.18);
-      --text-main:   rgba(255,255,255,0.92);
-      --text-dim:    rgba(255,255,255,0.42);
-      --btn-radius:  14px;
-      --hud-gap:     10px;
-      --transition:  0.4s cubic-bezier(0.22, 1, 0.36, 1);
+      --accent: #29b6f6;
+      --accent-dim: rgba(41, 182, 246, 0.18);
+      --text-main: rgba(255, 255, 255, 0.92);
+      --text-dim: rgba(255, 255, 255, 0.42);
+      --btn-radius: 14px;
+      --hud-gap: 10px;
+      --transition: 0.4s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    * { box-sizing: border-box; }
-    body { margin: 0; overflow: hidden; background: #000; font-family: 'DM Sans', sans-serif; }
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: #000;
+      font-family: 'DM Sans', sans-serif;
+    }
 
     /* ──────────────────────────────────────────────────────────────
        HUD OVERLAY — partagé entre hub et immersif
@@ -52,7 +63,10 @@
       gap: var(--hud-gap);
       pointer-events: all;
     }
-    #hud-immersive.active { display: flex; }
+
+    #hud-immersive.active {
+      display: flex;
+    }
 
     /* ── HUD Hub (bas gauche aussi) ── */
     #hud-hub {
@@ -83,13 +97,21 @@
       position: relative;
       -webkit-tap-highlight-color: transparent;
     }
+
     .hud-btn:hover {
       background: rgba(41, 182, 246, 0.14);
       border-color: rgba(41, 182, 246, 0.4);
       transform: translateY(-2px);
     }
-    .hud-btn:active { transform: scale(0.93); }
-    .hud-btn svg { width: 22px; height: 22px; }
+
+    .hud-btn:active {
+      transform: scale(0.93);
+    }
+
+    .hud-btn svg {
+      width: 22px;
+      height: 22px;
+    }
 
     /* Infobulle des boutons HUD */
     .hud-btn::after {
@@ -113,14 +135,20 @@
       pointer-events: none;
       transition: opacity 0.25s, transform 0.25s;
     }
+
     .hud-btn:hover::after {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
 
     /* État mute actif */
-    .hud-btn.muted { border-color: rgba(239,83,80,0.5); }
-    .hud-btn.muted svg { color: #ef5350; }
+    .hud-btn.muted {
+      border-color: rgba(239, 83, 80, 0.5);
+    }
+
+    .hud-btn.muted svg {
+      color: #ef5350;
+    }
 
     /* ── QR Code modal ── */
     #qr-modal {
@@ -130,16 +158,18 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0,0,0,0.72);
+      background: rgba(0, 0, 0, 0.72);
       backdrop-filter: blur(8px);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.4s;
     }
+
     #qr-modal.open {
       opacity: 1;
       pointer-events: all;
     }
+
     .qr-card {
       background: var(--glass-bg);
       border: 1px solid var(--glass-border);
@@ -152,6 +182,7 @@
       color: var(--text-main);
       font-family: 'Space Grotesk', sans-serif;
     }
+
     .qr-card h2 {
       margin: 0;
       font-size: 16px;
@@ -160,11 +191,15 @@
       text-transform: uppercase;
       color: var(--text-dim);
     }
-    .qr-card canvas, .qr-card img {
-      width: 180px; height: 180px;
+
+    .qr-card canvas,
+    .qr-card img {
+      width: 180px;
+      height: 180px;
       border-radius: 10px;
       image-rendering: pixelated;
     }
+
     .qr-card p {
       margin: 0;
       font-size: 13px;
@@ -173,6 +208,7 @@
       max-width: 220px;
       line-height: 1.6;
     }
+
     .qr-close {
       background: none;
       border: 1px solid var(--glass-border);
@@ -184,7 +220,11 @@
       cursor: pointer;
       transition: all 0.25s;
     }
-    .qr-close:hover { border-color: var(--accent); color: var(--accent); }
+
+    .qr-close:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     /* ── Hint discret ── */
     #immersive-hint {
@@ -202,730 +242,753 @@
       opacity: 0;
       transition: opacity 0.6s;
     }
-    #immersive-hint.visible { opacity: 1; }
+
+    #immersive-hint.visible {
+      opacity: 1;
+    }
   </style>
 </head>
+
 <body>
 
-<!-- ── HUD Hub (toujours visible dans le hub) ── -->
-<div id="hud-hub">
-  <button class="hud-btn" id="btn-hub-mute" data-tip="Couper le son" onclick="toggleMuteGlobal(this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-hub-qr" data-tip="QR Code" onclick="openQR()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-      <rect x="3" y="14" width="7" height="7"/>
-      <path d="M14 14h1v1h-1z M17 14h1v1h-1z M14 17h1v1h-1z M17 17h4v4h-4z"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-hub-inspect" data-tip="Inspecteur 3D" onclick="openAFrameInspector()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      <line x1="11" y1="8" x2="11" y2="14"/>
-      <line x1="8" y1="11" x2="14" y2="11"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-hub-xr" data-tip="Mode XR (VR/AR)" onclick="switchXRMode()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <path d="M4 14l4-4 4 4"/><path d="M4 10v4"/><path d="M12 10v4"/><path d="M16 10l4 4"/><path d="M20 10v4"/>
-      <path d="M2 19h20M2 5h20"/>
-    </svg>
-  </button>
-</div>
-
-<!-- ── HUD Immersif (visible en mode 360) ── -->
-<div id="hud-immersive">
-  <button class="hud-btn" id="btn-imm-home" data-tip="Retour au Hub" onclick="exitImmersive()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-      <polyline points="9 22 9 12 15 12 15 22"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-imm-mute" data-tip="Couper le son" onclick="toggleMuteVideo(this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
-      <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
-      <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-imm-inspect" data-tip="Inspecteur 3D" onclick="openAFrameInspector()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <circle cx="11" cy="11" r="8"/>
-      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      <line x1="11" y1="8" x2="11" y2="14"/>
-      <line x1="8" y1="11" x2="14" y2="11"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-imm-qr" data-tip="QR Code" onclick="openQR()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-      <rect x="3" y="14" width="7" height="7"/>
-      <path d="M14 14h1v1h-1z M17 14h1v1h-1z M14 17h1v1h-1z M17 17h4v4h-4z"/>
-    </svg>
-  </button>
-  <button class="hud-btn" id="btn-imm-xr" data-tip="Mode XR (VR/AR)" onclick="switchXRMode()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
-      <path d="M4 14l4-4 4 4"/><path d="M4 10v4"/><path d="M12 10v4"/><path d="M16 10l4 4"/><path d="M20 10v4"/>
-      <path d="M2 19h20M2 5h20"/>
-    </svg>
-  </button>
-</div>
-
-<!-- ── Hint discret ── -->
-<div id="immersive-hint">Mode 360°</div>
-
-<!-- ── Modal QR ── -->
-<div id="qr-modal" onclick="if(event.target===this)closeQR()">
-  <div class="qr-card">
-    <h2>Accès mobile</h2>
-    <canvas id="qr-canvas" width="180" height="180"></canvas>
-    <p>Scannez pour ouvrir sur votre téléphone avec gyroscope</p>
-    <button class="qr-close" onclick="closeQR()">Fermer</button>
+  <!-- ── HUD Hub (toujours visible dans le hub) ── -->
+  <div id="hud-hub">
+    <button class="hud-btn" id="btn-hub-mute" data-tip="Couper le son" onclick="toggleMuteGlobal(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-hub-qr" data-tip="QR Code" onclick="openQR()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+        <path d="M14 14h1v1h-1z M17 14h1v1h-1z M14 17h1v1h-1z M17 17h4v4h-4z" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-hub-inspect" data-tip="Inspecteur 3D" onclick="openAFrameInspector()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        <line x1="11" y1="8" x2="11" y2="14" />
+        <line x1="8" y1="11" x2="14" y2="11" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-hub-xr" data-tip="Mode XR (VR/AR)" onclick="switchXRMode()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <path d="M4 14l4-4 4 4" />
+        <path d="M4 10v4" />
+        <path d="M12 10v4" />
+        <path d="M16 10l4 4" />
+        <path d="M20 10v4" />
+        <path d="M2 19h20M2 5h20" />
+      </svg>
+    </button>
   </div>
-</div>
 
-<script>
-/* ── QR Code ── */
-async function openQR() {
-  let url = window.location.href;
-  try {
-    const res = await fetch('/tunnel.txt');
-    if (res.ok) {
-      const text = await res.text();
-      if (text.startsWith('http')) {
-        url = text;
-      }
-    }
-  } catch (e) {}
-  drawQR(url);
-  document.getElementById('qr-modal').classList.add('open');
-}
-function closeQR() {
-  document.getElementById('qr-modal').classList.remove('open');
-}
-function drawQR(url) {
-  // Mini QR code maison (encodes URL en ASCII, affiche une grille)
-  // Pour un vrai QR, on injecte l'URL dans un service externe via img
-  const c = document.getElementById('qr-canvas');
-  const img = new Image();
-  img.onload = () => {
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#fff';
-    ctx.fillRect(0,0,180,180);
-    ctx.drawImage(img, 10, 10, 160, 160);
-  };
-  // Google Charts API (pas de JS lib nécessaire)
-  img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}`;
-}
+  <!-- ── HUD Immersif (visible en mode 360) ── -->
+  <div id="hud-immersive">
+    <button class="hud-btn" id="btn-imm-home" data-tip="Retour au Hub" onclick="exitImmersive()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-imm-mute" data-tip="Couper le son" onclick="toggleMuteVideo(this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-imm-inspect" data-tip="Inspecteur 3D" onclick="openAFrameInspector()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        <line x1="11" y1="8" x2="11" y2="14" />
+        <line x1="8" y1="11" x2="14" y2="11" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-imm-qr" data-tip="QR Code" onclick="openQR()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <rect x="3" y="3" width="7" height="7" />
+        <rect x="14" y="3" width="7" height="7" />
+        <rect x="3" y="14" width="7" height="7" />
+        <path d="M14 14h1v1h-1z M17 14h1v1h-1z M14 17h1v1h-1z M17 17h4v4h-4z" />
+      </svg>
+    </button>
+    <button class="hud-btn" id="btn-imm-xr" data-tip="Mode XR (VR/AR)" onclick="switchXRMode()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+        stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+        <path d="M4 14l4-4 4 4" />
+        <path d="M4 10v4" />
+        <path d="M12 10v4" />
+        <path d="M16 10l4 4" />
+        <path d="M20 10v4" />
+        <path d="M2 19h20M2 5h20" />
+      </svg>
+    </button>
+  </div>
 
-/* ── Mute ── */
-function toggleMuteGlobal(btn) {
-  const v = document.getElementById('vid-preview');
-  if (!v) return;
-  v.muted = !v.muted;
-  updateMuteIcon(btn, v.muted);
-}
-function toggleMuteVideo(btn) {
-  const v = document.getElementById('vid-360');
-  if (!v) return;
-  v.muted = !v.muted;
-  updateMuteIcon(btn, v.muted);
-}
-function updateMuteIcon(btn, isMuted) {
-  if (!btn) return;
-  const svg = btn.querySelector('svg');
-  if (!svg) return;
-  if (isMuted) {
-    if (!btn.querySelector('.mute-line')) {
-      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      line.setAttribute('x1', '1'); line.setAttribute('y1', '1');
-      line.setAttribute('x2', '23'); line.setAttribute('y2', '23');
-      line.setAttribute('stroke', '#ff5252');
-      line.setAttribute('stroke-width', '2');
-      line.setAttribute('class', 'mute-line');
-      svg.appendChild(line);
-    }
-    const paths = svg.querySelectorAll('path');
-    paths.forEach(p => p.style.opacity = '0.3');
-  } else {
-    const paths = svg.querySelectorAll('path');
-    paths.forEach(p => p.style.opacity = '');
-    const line = btn.querySelector('.mute-line');
-    if (line) line.remove();
-  }
-}
+  <!-- ── Hint discret ── -->
+  <div id="immersive-hint">Mode 360°</div>
 
-/* ── XR Mode (VR/AR) Switch ── */
-function switchXRMode() {
-  const scene = document.querySelector('a-scene');
-  if (!scene) return;
-  if (scene.is('vr-mode') || scene.is('ar-mode')) {
-    scene.exitVR();
-  } else {
-    if (navigator.xr && navigator.xr.isSessionSupported) {
-      navigator.xr.isSessionSupported('immersive-ar').then(supported => {
-        if (supported) scene.enterAR();
-        else scene.enterVR();
-      }).catch(() => scene.enterVR());
-    } else {
-      scene.enterVR();
-    }
-  }
-}
+  <!-- ── Modal QR ── -->
+  <div id="qr-modal" onclick="if(event.target===this)closeQR()">
+    <div class="qr-card">
+      <h2>Accès mobile</h2>
+      <canvas id="qr-canvas" width="180" height="180"></canvas>
+      <p>Scannez pour ouvrir sur votre téléphone avec gyroscope</p>
+      <button class="qr-close" onclick="closeQR()">Fermer</button>
+    </div>
+  </div>
 
-/* ── Inspecteur A-Frame ── */
-const INSPECTOR_URL = 'https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js';
-let _inspectorLoaded = false;
-
-function openAFrameInspector() {
-  console.log('[Inspector] ouverture...');
-  if (window.AFRAME && window.AFRAME.INSPECTOR) {
-    // Déjà chargé → ouvrir directement
-    window.AFRAME.INSPECTOR.open();
-    return;
-  }
-  // Injecter le script une seule fois
-  if (_inspectorLoaded) {
-    console.log('[Inspector] chargement en cours...');
-    return;
-  }
-  _inspectorLoaded = true;
-  console.log('[Inspector] injection du script...');
-  const s = document.createElement('script');
-  s.src = INSPECTOR_URL;
-  s.onload = () => {
-    console.log('[Inspector] script chargé, ouverture...');
-    // Petit délai pour laisser A-Frame initialiser l'inspecteur
-    setTimeout(() => {
-      if (window.AFRAME && window.AFRAME.INSPECTOR) {
-        window.AFRAME.INSPECTOR.open();
-      } else {
-        console.warn('[Inspector] AFRAME.INSPECTOR non disponible après chargement');
-      }
-    }, 300);
-  };
-  s.onerror = () => console.error('[Inspector] échec du chargement depuis', INSPECTOR_URL);
-  document.head.appendChild(s);
-}
-
-/* ── Exit immersif (appelé depuis le bouton HTML) ── */
-function exitImmersive() {
-  const scene = document.querySelector('a-scene');
-  if (scene && scene.components['immersive-manager']) {
-    scene.components['immersive-manager']._exit();
-  }
-}
-</script>
-
-<script>
-/* ================================================================
-   ROUE DE DÉCOMPTE — gaze-wheel (sur <a-camera>)
-   ================================================================ */
-AFRAME.registerComponent('gaze-wheel', {
-  init: function () {
-    const canvas   = document.createElement('canvas');
-    canvas.width   = canvas.height = 256;
-    this.ctx       = canvas.getContext('2d');
-    this.tex       = new THREE.CanvasTexture(canvas);
-
-    this._draw(0);
-    const geo  = new THREE.PlaneGeometry(0.07, 0.07);
-    const mat  = new THREE.MeshBasicMaterial({
-      map: this.tex, transparent: true, depthTest: false
-    });
-    this.mesh  = new THREE.Mesh(geo, mat);
-    this.mesh.position.set(0, 0, -0.75);
-    this.mesh.renderOrder = 999;
-    this.el.object3D.add(this.mesh);
-
-    this._onComplete = null;
-    this._dwellMs    = 0;
-    this._startTime  = 0;
-    this._rafId      = null;
-
-    document.addEventListener('gaze-dwell-start', (e) => {
-      this._start(e.detail.ms, e.detail.onComplete);
-    });
-    document.addEventListener('gaze-dwell-stop', () => {
-      this._stop();
-    });
-  },
-
-  _start: function (ms, cb) {
-    this._stop();
-    this._dwellMs    = ms;
-    this._onComplete = cb;
-    this._startTime  = performance.now();
-    this._animate();
-  },
-
-  _stop: function () {
-    cancelAnimationFrame(this._rafId);
-    this._rafId      = null;
-    this._onComplete = null;
-    this._draw(0);
-  },
-
-  _animate: function () {
-    this._rafId = requestAnimationFrame(() => {
-      const p = Math.min((performance.now() - this._startTime) / this._dwellMs, 1);
-      this._draw(p);
-      if (p < 1) {
-        this._animate();
-      } else {
-        const cb = this._onComplete;
-        this._stop();
-        if (cb) cb();
-      }
-    });
-  },
-
-  _draw: function (progress) {
-    const ctx = this.ctx;
-    const cx = 128, cy = 128, r = 80;
-    ctx.clearRect(0, 0, 256, 256);
-
-    // Point central très fin
-    ctx.beginPath();
-    ctx.arc(cx, cy, 3, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fill();
-
-    // Anneau fond
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-    ctx.lineWidth   = 4;
-    ctx.stroke();
-
-    // Arc de progression (accent cyan)
-    if (progress > 0.001) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2, false);
-      ctx.strokeStyle = 'rgba(41,182,246,0.95)';
-      ctx.lineWidth   = 10;
-      ctx.lineCap     = 'round';
-      ctx.stroke();
-    }
-    this.tex.needsUpdate = true;
-  },
-
-  remove: function () {
-    cancelAnimationFrame(this._rafId);
-    if (this.mesh) this.el.object3D.remove(this.mesh);
-  }
-});
-
-/* ================================================================
-   GAZE-INTERACT — sur chaque objet 3D
-   ================================================================ */
-AFRAME.registerComponent('gaze-interact', {
-  schema: {
-    previewPanelId: { type: 'string', default: '' },
-    video360Label:  { type: 'string', default: '' },
-    hitW: { type: 'number', default: 1.0 },
-    hitH: { type: 'number', default: 1.0 },
-    hitD: { type: 'number', default: 1.0 },
-    hitY: { type: 'number', default: 0   }
-  },
-
-  init: function () {
-    const el   = this.el;
-    const data = this.data;
-
-    const hitbox = document.createElement('a-box');
-    hitbox.setAttribute('width',    data.hitW);
-    hitbox.setAttribute('height',   data.hitH);
-    hitbox.setAttribute('depth',    data.hitD);
-    hitbox.setAttribute('position', `0 ${data.hitY} 0`);
-    hitbox.classList.add('dwell-target');
-    hitbox.setAttribute('material', 'opacity:0;transparent:true;side:double');
-    el.appendChild(hitbox);
-    this.hitbox = hitbox;
-
-    el.sceneEl.addEventListener('close-other-panels', (e) => {
-      if (e.detail.excludeId !== el.id && this._panelOpen) {
-        this._hidePanel();
-      }
-    });
-
-    this._rotating    = false;
-    this._rotSpeed    = 40;
-    this._baseY       = (el.getAttribute('rotation') || { y: 0 }).y;
-    this._currentY    = this._baseY;
-    this._lastTime    = null;
-    this._rafId       = null;
-    this._panelOpen   = false;
-    this._autoDismiss = null;
-    this._isHovered   = false;
-
-    this.panel  = data.previewPanelId
-      ? document.getElementById(data.previewPanelId) : null;
-    this.btnHit = this.panel
-      ? this.panel.querySelector('.btn-immersif-hit') : null;
-
-    if (this.btnHit) {
-      this.btnHit.addEventListener('mouseenter', () => {
-        clearTimeout(this._autoDismiss);
-        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
-          detail: {
-            ms: 2000,
-            onComplete: () => {
-              this._hidePanel();
-              el.sceneEl.emit('launch-360', { label: data.video360Label });
-            }
+  <script>
+    /* ── QR Code ── */
+    async function openQR() {
+      let url = window.location.href;
+      try {
+        const res = await fetch('/tunnel.txt');
+        if (res.ok) {
+          const text = await res.text();
+          if (text.startsWith('http')) {
+            url = text;
           }
-        }));
-      });
-      this.btnHit.addEventListener('mouseleave', () => {
-        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-        if (this._panelOpen) {
-          clearTimeout(this._autoDismiss);
-          this._autoDismiss = setTimeout(() => this._hidePanel(), 6000);
         }
-      });
+      } catch (e) { }
+      drawQR(url);
+      document.getElementById('qr-modal').classList.add('open');
+    }
+    function closeQR() {
+      document.getElementById('qr-modal').classList.remove('open');
+    }
+    function drawQR(url) {
+      // Mini QR code maison (encodes URL en ASCII, affiche une grille)
+      // Pour un vrai QR, on injecte l'URL dans un service externe via img
+      const c = document.getElementById('qr-canvas');
+      const img = new Image();
+      img.onload = () => {
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, 180, 180);
+        ctx.drawImage(img, 10, 10, 160, 160);
+      };
+      // Google Charts API (pas de JS lib nécessaire)
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(url)}`;
     }
 
-    hitbox.addEventListener('mouseenter', () => {
-      this._isHovered = true;
-      el.sceneEl.emit('close-other-panels', { excludeId: el.id });
-      this._rotating = true;
-      this._lastTime = null;
-      if (!this._rafId) this._tick();
-
-      if (!this._panelOpen) {
-        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
-          detail: { ms: 2000, onComplete: () => this._showPanel() }
-        }));
-      }
-    });
-
-    hitbox.addEventListener('mouseleave', () => {
-      this._isHovered = false;
-      this._rotating = false;
-      cancelAnimationFrame(this._rafId);
-      this._rafId = null;
-      el.setAttribute('animation__returnrot',
-        `property: rotation; to: 0 ${this._baseY} 0; dur: 700; easing: easeOutQuad`);
-      if (!this._panelOpen) {
-        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-      }
-    });
-  },
-
-  _showPanel: function () {
-    if (!this.panel || this._panelOpen) return;
-    this._panelOpen = true;
-
-    this._rotating = false;
-    cancelAnimationFrame(this._rafId);
-    this._rafId = null;
-    this.el.setAttribute('animation__returnrot',
-      `property: rotation; to: 0 ${this._baseY} 0; dur: 500; easing: easeOutQuad`);
-
-    this.panel.setAttribute('scale', '0.001 0.001 0.001');
-    this.panel.setAttribute('visible', true);
-
-    this.panel.removeAttribute('animation__disappear');
-    this.panel.removeAttribute('animation__appear');
-    setTimeout(() => {
-      if (this.panel) {
-        this.panel.setAttribute('animation__appear',
-          'property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 500; easing: easeOutBack');
-      }
-    }, 10);
-
-    const vid = document.getElementById('vid-preview');
-    if (vid) vid.play().catch(() => {});
-
-    if (this.btnHit) this.btnHit.setAttribute('visible', true);
-
-    clearTimeout(this._autoDismiss);
-    this._autoDismiss = setTimeout(() => this._hidePanel(), 8000);
-  },
-
-  _hidePanel: function () {
-    if (!this.panel) return;
-    this._panelOpen = false;
-    clearTimeout(this._autoDismiss);
-    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-
-    this.panel.removeAttribute('animation__appear');
-    this.panel.removeAttribute('animation__disappear');
-    setTimeout(() => {
-      if (this.panel) {
-        this.panel.setAttribute('animation__disappear',
-          'property: scale; from: 1 1 1; to: 0.001 0.001 0.001; dur: 380; easing: easeInBack');
-      }
-    }, 10);
-    setTimeout(() => {
-      this.panel.setAttribute('visible', false);
-      if (this.btnHit) this.btnHit.setAttribute('visible', false);
-
-      if (this._isHovered) {
-        this._rotating = true;
-        this._lastTime = null;
-        if (!this._rafId) this._tick();
-
-        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
-          detail: { ms: 2000, onComplete: () => this._showPanel() }
-        }));
-      }
-    }, 400);
-  },
-
-  _tick: function () {
-    this._rafId = requestAnimationFrame((t) => {
-      if (!this._rotating) { this._rafId = null; return; }
-      const dt = this._lastTime ? (t - this._lastTime) / 1000 : 0;
-      this._lastTime = t;
-      this._currentY += this._rotSpeed * dt;
-      this.el.object3D.rotation.y = THREE.MathUtils.degToRad(this._currentY);
-      this._tick();
-    });
-  }
-});
-
-/* ================================================================
-   CUEPOINT-INTERACT — sur chaque cuepoint
-   Fade-in immédiat au survol, tooltip, fade-out après 2s sans regard
-   ================================================================ */
-AFRAME.registerComponent('cuepoint-interact', {
-  schema: { id: { type: 'string' } },
-  init: function () {
-    setTimeout(() => {
-      this.baseY   = this.el.getAttribute('position').y;
-      this.tooltip = this.el.querySelector('.cp-tooltip');
-      this.light   = this.el.querySelector('.cp-light');
-    }, 150);
-
-    this._hovering      = false;
-    this._tooltipVisible = false;
-    this._hideTimer     = null;
-  },
-
-  _doJump: function () {
-    const pos = this.el.getAttribute('position');
-    const y0  = this.baseY !== undefined ? this.baseY : pos.y;
-    // Phase 1 : montée + étirement
-    this.el.setAttribute('animation__jump',
-      `property: position; to: ${pos.x} ${y0 + 0.18} ${pos.z}; dur: 250; easing: easeOutQuad`);
-    this.el.setAttribute('animation__squash',
-      'property: scale; to: 0.9 1.18 0.9; dur: 250; easing: easeOutQuad');
-    // Phase 2 : chute
-    setTimeout(() => {
-      if (!this._hovering) return;
-      this.el.setAttribute('animation__jump',
-        `property: position; to: ${pos.x} ${y0} ${pos.z}; dur: 320; easing: easeInQuad`);
-      this.el.setAttribute('animation__squash',
-        'property: scale; to: 1.15 0.88 1.15; dur: 200; easing: easeOutQuad');
-    }, 260);
-    // Phase 3 : rebond retour
-    setTimeout(() => {
-      if (!this._hovering) return;
-      this.el.setAttribute('animation__squash',
-        'property: scale; to: 1 1 1; dur: 400; easing: easeOutBack');
-    }, 470);
-  },
-
-  _showTooltip: function () {
-    if (this._tooltipVisible) return;
-    this._tooltipVisible = true;
-    clearTimeout(this._hideTimer);
-    if (this.tooltip) {
-      this.tooltip.setAttribute('visible', 'true');
+    /* ── Mute ── */
+    function toggleMuteGlobal(btn) {
+      const v = document.getElementById('vid-preview');
+      if (!v) return;
+      v.muted = !v.muted;
+      updateMuteIcon(btn, v.muted);
     }
-  },
-
-  _hideTooltipDelayed: function () {
-    clearTimeout(this._hideTimer);
-    this._hideTimer = setTimeout(() => {
-      this._doHideTooltip();
-    }, 2000);
-  },
-
-  _doHideTooltip: function () {
-    if (!this._tooltipVisible) return;
-    this._tooltipVisible = false;
-    if (this.tooltip) {
-      this.tooltip.setAttribute('visible', 'false');
+    function toggleMuteVideo(btn) {
+      const v = document.getElementById('vid-360');
+      if (!v) return;
+      v.muted = !v.muted;
+      updateMuteIcon(btn, v.muted);
     }
-  },
-
-  _setLight: function (intensity) {
-    if (this.light) this.light.setAttribute('intensity', intensity);
-  },
-
-  _setCubeEmissive: function (hex, intensity) {
-    const cube = this.el.querySelector('.cp-cube');
-    if (cube) {
-      cube.setAttribute('material', {
-        emissive: hex,
-        emissiveIntensity: intensity
-      });
-    }
-  },
-
-  play: function () {
-    this._onEnter = () => {
-      this._hovering = true;
-      clearTimeout(this._hideTimer);
-      this._setCubeEmissive('#62efff', 2.5);
-      this._setLight(2.5);
-      this._doJump();
-      this._showTooltip();
-
-      const manager = this.el.sceneEl.components['cuepoint-manager'];
-      if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
-
-      document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
-        detail: {
-          ms: 1500,
-          onComplete: () => { /* tooltip déjà visible */ }
+    function updateMuteIcon(btn, isMuted) {
+      if (!btn) return;
+      const svg = btn.querySelector('svg');
+      if (!svg) return;
+      if (isMuted) {
+        if (!btn.querySelector('.mute-line')) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', '1'); line.setAttribute('y1', '1');
+          line.setAttribute('x2', '23'); line.setAttribute('y2', '23');
+          line.setAttribute('stroke', '#ff5252');
+          line.setAttribute('stroke-width', '2');
+          line.setAttribute('class', 'mute-line');
+          svg.appendChild(line);
         }
-      }));
-    };
-    this._onLeave = () => {
-      this._hovering = false;
-      this._setCubeEmissive('#29b6f6', 0.9);
-      this._setLight(1.0);
-      this.el.removeAttribute('animation__jump');
-      this.el.setAttribute('animation__squash',
-        'property: scale; to: 1 1 1; dur: 300; easing: easeOutBack');
-
-      // Cacher le tooltip après 2s si le curseur ne revient pas
-      this._hideTooltipDelayed();
-
-      const manager = this.el.sceneEl.components['cuepoint-manager'];
-      if (manager) manager.clearHoveredCuepoint(this.data.id);
-      document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-    };
-    this.el.addEventListener('mouseenter', this._onEnter);
-    this.el.addEventListener('mouseleave', this._onLeave);
-  },
-
-  pause: function () {
-    this.el.removeEventListener('mouseenter', this._onEnter);
-    this.el.removeEventListener('mouseleave', this._onLeave);
-  }
-});
-
-/* video-envmap supprimé : PMREMGenerator génère un shader GLSL avec
-   'Infinity' non supporté en WebGL1 (Three.js r158 / A-Frame 1.5)
-   Le matériau metalness/roughness fonctionne sans envmap explicite */
-
-/* ================================================================
-   CUEPOINT-MANAGER — sur <a-scene>
-   ================================================================ */
-AFRAME.registerComponent('cuepoint-manager', {
-  init: function () {
-    this.cuepoints = [];
-    this.currentVideoId = null;
-    this.hoveredCuepointId = null;
-    this.hoveredCuepointEl = null;
-    this._onKeyDown = this._onKeyDown.bind(this);
-    window.addEventListener('keydown', this._onKeyDown);
-  },
-
-  _onKeyDown: function (e) {
-    const key = e.key.toLowerCase();
-    if (key === 'q') { this.addCuepoint(); return; }
-    if (key === 'a') {
-      if (this.hoveredCuepointId) this.deleteCuepoint(this.hoveredCuepointId);
-    }
-  },
-
-  setHoveredCuepoint: function (id, el) {
-    this.hoveredCuepointId = id;
-    this.hoveredCuepointEl = el;
-  },
-
-  clearHoveredCuepoint: function (id) {
-    if (this.hoveredCuepointId === id) {
-      this.hoveredCuepointId = null;
-      this.hoveredCuepointEl = null;
-    }
-  },
-
-  deleteCuepoint: function (id) {
-    this.cuepoints = this.cuepoints.filter(cp => cp.id !== id);
-    const els = this.el.querySelectorAll(`.rendered-cuepoint[data-cpid="${id}"]`);
-    els.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
-    this.hoveredCuepointId = null;
-    this.hoveredCuepointEl = null;
-    this.saveToStorage();
-  },
-
-  loadCuepointsForVideo: async function (videoSrc) {
-    this.clearAllRendered();
-    this.currentVideoId = videoSrc;
-    try {
-      const res = await fetch('/api/cuepoints?video=' + encodeURIComponent(videoSrc));
-      if (res.ok) {
-        this.cuepoints = await res.json();
+        const paths = svg.querySelectorAll('path');
+        paths.forEach(p => p.style.opacity = '0.3');
       } else {
-        this.cuepoints = [];
+        const paths = svg.querySelectorAll('path');
+        paths.forEach(p => p.style.opacity = '');
+        const line = btn.querySelector('.mute-line');
+        if (line) line.remove();
       }
-    } catch(e) {
-      // Fallback local
-      const stored = localStorage.getItem('cuepoints_' + videoSrc);
-      this.cuepoints = stored ? JSON.parse(stored) : [];
     }
-    this.cuepoints.forEach(cp => this.renderCuepoint(cp));
-  },
 
-  addCuepoint: function () {
-    if (!this.currentVideoId) return;
-    const text = prompt('Texte du cuepoint :');
-    if (!text) return;
-
-    const cameraEl = document.getElementById('camera');
-    const cameraObj = cameraEl.getObject3D('camera') || cameraEl.object3D;
-    const dir = new THREE.Vector3();
-    cameraObj.getWorldDirection(dir);
-    const distance = 4;
-    const pos = new THREE.Vector3();
-    cameraObj.getWorldPosition(pos);
-    pos.add(dir.multiplyScalar(distance));
-
-    const cuepoint = {
-      id: 'cp_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
-      text: text,
-      position: { x: pos.x, y: pos.y, z: pos.z }
-    };
-    this.cuepoints.push(cuepoint);
-    this.saveToStorage();
-    this.renderCuepoint(cuepoint);
-  },
-
-  saveToStorage: function () {
-    if (this.currentVideoId) {
-      const data = JSON.stringify(this.cuepoints);
-      localStorage.setItem('cuepoints_' + this.currentVideoId, data);
-      fetch('/api/cuepoints?video=' + encodeURIComponent(this.currentVideoId), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: data
-      }).catch(() => {});
+    /* ── XR Mode (VR/AR) Switch ── */
+    function switchXRMode() {
+      const scene = document.querySelector('a-scene');
+      if (!scene) return;
+      if (scene.is('vr-mode') || scene.is('ar-mode')) {
+        scene.exitVR();
+      } else {
+        if (navigator.xr && navigator.xr.isSessionSupported) {
+          navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+            if (supported) scene.enterAR();
+            else scene.enterVR();
+          }).catch(() => scene.enterVR());
+        } else {
+          scene.enterVR();
+        }
+      }
     }
-  },
 
-  renderCuepoint: function (cp) {
-    const dx = 0 - cp.position.x;
-    const dz = 0 - cp.position.z;
-    const rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+    /* ── Inspecteur A-Frame ── */
+    const INSPECTOR_URL = 'https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js';
+    let _inspectorLoaded = false;
 
-    const safeText = cp.text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    const py = cp.position.y;
+    function openAFrameInspector() {
+      console.log('[Inspector] ouverture...');
+      if (window.AFRAME && window.AFRAME.INSPECTOR) {
+        // Déjà chargé → ouvrir directement
+        window.AFRAME.INSPECTOR.open();
+        return;
+      }
+      // Injecter le script une seule fois
+      if (_inspectorLoaded) {
+        console.log('[Inspector] chargement en cours...');
+        return;
+      }
+      _inspectorLoaded = true;
+      console.log('[Inspector] injection du script...');
+      const s = document.createElement('script');
+      s.src = INSPECTOR_URL;
+      s.onload = () => {
+        console.log('[Inspector] script chargé, ouverture...');
+        // Petit délai pour laisser A-Frame initialiser l'inspecteur
+        setTimeout(() => {
+          if (window.AFRAME && window.AFRAME.INSPECTOR) {
+            window.AFRAME.INSPECTOR.open();
+          } else {
+            console.warn('[Inspector] AFRAME.INSPECTOR non disponible après chargement');
+          }
+        }, 300);
+      };
+      s.onerror = () => console.error('[Inspector] échec du chargement depuis', INSPECTOR_URL);
+      document.head.appendChild(s);
+    }
 
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = `
+    /* ── Exit immersif (appelé depuis le bouton HTML) ── */
+    function exitImmersive() {
+      const scene = document.querySelector('a-scene');
+      if (scene && scene.components['immersive-manager']) {
+        scene.components['immersive-manager']._exit();
+      }
+    }
+  </script>
+
+  <script>
+    /* ================================================================
+       ROUE DE DÉCOMPTE — gaze-wheel (sur <a-camera>)
+       ================================================================ */
+    AFRAME.registerComponent('gaze-wheel', {
+      init: function () {
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 256;
+        this.ctx = canvas.getContext('2d');
+        this.tex = new THREE.CanvasTexture(canvas);
+
+        this._draw(0);
+        const geo = new THREE.PlaneGeometry(0.07, 0.07);
+        const mat = new THREE.MeshBasicMaterial({
+          map: this.tex, transparent: true, depthTest: false
+        });
+        this.mesh = new THREE.Mesh(geo, mat);
+        this.mesh.position.set(0, 0, -0.75);
+        this.mesh.renderOrder = 999;
+        this.el.object3D.add(this.mesh);
+
+        this._onComplete = null;
+        this._dwellMs = 0;
+        this._startTime = 0;
+        this._rafId = null;
+
+        document.addEventListener('gaze-dwell-start', (e) => {
+          this._start(e.detail.ms, e.detail.onComplete);
+        });
+        document.addEventListener('gaze-dwell-stop', () => {
+          this._stop();
+        });
+      },
+
+      _start: function (ms, cb) {
+        this._stop();
+        this._dwellMs = ms;
+        this._onComplete = cb;
+        this._startTime = performance.now();
+        this._animate();
+      },
+
+      _stop: function () {
+        cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+        this._onComplete = null;
+        this._draw(0);
+      },
+
+      _animate: function () {
+        this._rafId = requestAnimationFrame(() => {
+          const p = Math.min((performance.now() - this._startTime) / this._dwellMs, 1);
+          this._draw(p);
+          if (p < 1) {
+            this._animate();
+          } else {
+            const cb = this._onComplete;
+            this._stop();
+            if (cb) cb();
+          }
+        });
+      },
+
+      _draw: function (progress) {
+        const ctx = this.ctx;
+        const cx = 128, cy = 128, r = 80;
+        ctx.clearRect(0, 0, 256, 256);
+
+        // Point central très fin
+        ctx.beginPath();
+        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fill();
+
+        // Anneau fond
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        // Arc de progression (accent cyan)
+        if (progress > 0.001) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2, false);
+          ctx.strokeStyle = 'rgba(41,182,246,0.95)';
+          ctx.lineWidth = 10;
+          ctx.lineCap = 'round';
+          ctx.stroke();
+        }
+        this.tex.needsUpdate = true;
+      },
+
+      remove: function () {
+        cancelAnimationFrame(this._rafId);
+        if (this.mesh) this.el.object3D.remove(this.mesh);
+      }
+    });
+
+    /* ================================================================
+       GAZE-INTERACT — sur chaque objet 3D
+       ================================================================ */
+    AFRAME.registerComponent('gaze-interact', {
+      schema: {
+        previewPanelId: { type: 'string', default: '' },
+        video360Label: { type: 'string', default: '' },
+        hitW: { type: 'number', default: 1.0 },
+        hitH: { type: 'number', default: 1.0 },
+        hitD: { type: 'number', default: 1.0 },
+        hitY: { type: 'number', default: 0 }
+      },
+
+      init: function () {
+        const el = this.el;
+        const data = this.data;
+
+        const hitbox = document.createElement('a-box');
+        hitbox.setAttribute('width', data.hitW);
+        hitbox.setAttribute('height', data.hitH);
+        hitbox.setAttribute('depth', data.hitD);
+        hitbox.setAttribute('position', `0 ${data.hitY} 0`);
+        hitbox.classList.add('dwell-target');
+        hitbox.setAttribute('material', 'opacity:0;transparent:true;side:double');
+        el.appendChild(hitbox);
+        this.hitbox = hitbox;
+
+        el.sceneEl.addEventListener('close-other-panels', (e) => {
+          if (e.detail.excludeId !== el.id && this._panelOpen) {
+            this._hidePanel();
+          }
+        });
+
+        this._rotating = false;
+        this._rotSpeed = 40;
+        this._baseY = (el.getAttribute('rotation') || { y: 0 }).y;
+        this._currentY = this._baseY;
+        this._lastTime = null;
+        this._rafId = null;
+        this._panelOpen = false;
+        this._autoDismiss = null;
+        this._isHovered = false;
+
+        this.panel = data.previewPanelId
+          ? document.getElementById(data.previewPanelId) : null;
+        this.btnHit = this.panel
+          ? this.panel.querySelector('.btn-immersif-hit') : null;
+
+        if (this.btnHit) {
+          this.btnHit.addEventListener('mouseenter', () => {
+            clearTimeout(this._autoDismiss);
+            document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+              detail: {
+                ms: 2000,
+                onComplete: () => {
+                  this._hidePanel();
+                  el.sceneEl.emit('launch-360', { label: data.video360Label });
+                }
+              }
+            }));
+          });
+          this.btnHit.addEventListener('mouseleave', () => {
+            document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+            if (this._panelOpen) {
+              clearTimeout(this._autoDismiss);
+              this._autoDismiss = setTimeout(() => this._hidePanel(), 6000);
+            }
+          });
+        }
+
+        hitbox.addEventListener('mouseenter', () => {
+          this._isHovered = true;
+          el.sceneEl.emit('close-other-panels', { excludeId: el.id });
+          this._rotating = true;
+          this._lastTime = null;
+          if (!this._rafId) this._tick();
+
+          if (!this._panelOpen) {
+            document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+              detail: { ms: 2000, onComplete: () => this._showPanel() }
+            }));
+          }
+        });
+
+        hitbox.addEventListener('mouseleave', () => {
+          this._isHovered = false;
+          this._rotating = false;
+          cancelAnimationFrame(this._rafId);
+          this._rafId = null;
+          el.setAttribute('animation__returnrot',
+            `property: rotation; to: 0 ${this._baseY} 0; dur: 700; easing: easeOutQuad`);
+          if (!this._panelOpen) {
+            document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+          }
+        });
+      },
+
+      _showPanel: function () {
+        if (!this.panel || this._panelOpen) return;
+        this._panelOpen = true;
+
+        this._rotating = false;
+        cancelAnimationFrame(this._rafId);
+        this._rafId = null;
+        this.el.setAttribute('animation__returnrot',
+          `property: rotation; to: 0 ${this._baseY} 0; dur: 500; easing: easeOutQuad`);
+
+        this.panel.setAttribute('scale', '0.001 0.001 0.001');
+        this.panel.setAttribute('visible', true);
+
+        this.panel.removeAttribute('animation__disappear');
+        this.panel.removeAttribute('animation__appear');
+        setTimeout(() => {
+          if (this.panel) {
+            this.panel.setAttribute('animation__appear',
+              'property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 500; easing: easeOutBack');
+          }
+        }, 10);
+
+        const vid = document.getElementById('vid-preview');
+        if (vid) vid.play().catch(() => { });
+
+        if (this.btnHit) this.btnHit.setAttribute('visible', true);
+
+        clearTimeout(this._autoDismiss);
+        this._autoDismiss = setTimeout(() => this._hidePanel(), 8000);
+      },
+
+      _hidePanel: function () {
+        if (!this.panel) return;
+        this._panelOpen = false;
+        clearTimeout(this._autoDismiss);
+        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+        this.panel.removeAttribute('animation__appear');
+        this.panel.removeAttribute('animation__disappear');
+        setTimeout(() => {
+          if (this.panel) {
+            this.panel.setAttribute('animation__disappear',
+              'property: scale; from: 1 1 1; to: 0.001 0.001 0.001; dur: 380; easing: easeInBack');
+          }
+        }, 10);
+        setTimeout(() => {
+          this.panel.setAttribute('visible', false);
+          if (this.btnHit) this.btnHit.setAttribute('visible', false);
+
+          if (this._isHovered) {
+            this._rotating = true;
+            this._lastTime = null;
+            if (!this._rafId) this._tick();
+
+            document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+              detail: { ms: 2000, onComplete: () => this._showPanel() }
+            }));
+          }
+        }, 400);
+      },
+
+      _tick: function () {
+        this._rafId = requestAnimationFrame((t) => {
+          if (!this._rotating) { this._rafId = null; return; }
+          const dt = this._lastTime ? (t - this._lastTime) / 1000 : 0;
+          this._lastTime = t;
+          this._currentY += this._rotSpeed * dt;
+          this.el.object3D.rotation.y = THREE.MathUtils.degToRad(this._currentY);
+          this._tick();
+        });
+      }
+    });
+
+    /* ================================================================
+       CUEPOINT-INTERACT — sur chaque cuepoint
+       Fade-in immédiat au survol, tooltip, fade-out après 2s sans regard
+       ================================================================ */
+    AFRAME.registerComponent('cuepoint-interact', {
+      schema: { id: { type: 'string' } },
+      init: function () {
+        setTimeout(() => {
+          this.baseY = this.el.getAttribute('position').y;
+          this.tooltip = this.el.querySelector('.cp-tooltip');
+          this.light = this.el.querySelector('.cp-light');
+        }, 150);
+
+        this._hovering = false;
+        this._tooltipVisible = false;
+        this._hideTimer = null;
+      },
+
+      _doJump: function () {
+        const pos = this.el.getAttribute('position');
+        const y0 = this.baseY !== undefined ? this.baseY : pos.y;
+        // Phase 1 : montée + étirement
+        this.el.setAttribute('animation__jump',
+          `property: position; to: ${pos.x} ${y0 + 0.18} ${pos.z}; dur: 250; easing: easeOutQuad`);
+        this.el.setAttribute('animation__squash',
+          'property: scale; to: 0.9 1.18 0.9; dur: 250; easing: easeOutQuad');
+        // Phase 2 : chute
+        setTimeout(() => {
+          if (!this._hovering) return;
+          this.el.setAttribute('animation__jump',
+            `property: position; to: ${pos.x} ${y0} ${pos.z}; dur: 320; easing: easeInQuad`);
+          this.el.setAttribute('animation__squash',
+            'property: scale; to: 1.15 0.88 1.15; dur: 200; easing: easeOutQuad');
+        }, 260);
+        // Phase 3 : rebond retour
+        setTimeout(() => {
+          if (!this._hovering) return;
+          this.el.setAttribute('animation__squash',
+            'property: scale; to: 1 1 1; dur: 400; easing: easeOutBack');
+        }, 470);
+      },
+
+      _showTooltip: function () {
+        if (this._tooltipVisible) return;
+        this._tooltipVisible = true;
+        clearTimeout(this._hideTimer);
+        if (this.tooltip) {
+          this.tooltip.setAttribute('visible', 'true');
+        }
+      },
+
+      _hideTooltipDelayed: function () {
+        clearTimeout(this._hideTimer);
+        this._hideTimer = setTimeout(() => {
+          this._doHideTooltip();
+        }, 2000);
+      },
+
+      _doHideTooltip: function () {
+        if (!this._tooltipVisible) return;
+        this._tooltipVisible = false;
+        if (this.tooltip) {
+          this.tooltip.setAttribute('visible', 'false');
+        }
+      },
+
+      _setLight: function (intensity) {
+        if (this.light) this.light.setAttribute('intensity', intensity);
+      },
+
+      _setCubeEmissive: function (hex, intensity) {
+        const cube = this.el.querySelector('.cp-cube');
+        if (cube) {
+          cube.setAttribute('material', {
+            emissive: hex,
+            emissiveIntensity: intensity
+          });
+        }
+      },
+
+      play: function () {
+        this._onEnter = () => {
+          this._hovering = true;
+          clearTimeout(this._hideTimer);
+          this._setCubeEmissive('#62efff', 2.5);
+          this._setLight(2.5);
+          this._doJump();
+          this._showTooltip();
+
+          const manager = this.el.sceneEl.components['cuepoint-manager'];
+          if (manager) manager.setHoveredCuepoint(this.data.id, this.el);
+
+          document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+            detail: {
+              ms: 1500,
+              onComplete: () => { /* tooltip déjà visible */ }
+            }
+          }));
+        };
+        this._onLeave = () => {
+          this._hovering = false;
+          this._setCubeEmissive('#29b6f6', 0.9);
+          this._setLight(1.0);
+          this.el.removeAttribute('animation__jump');
+          this.el.setAttribute('animation__squash',
+            'property: scale; to: 1 1 1; dur: 300; easing: easeOutBack');
+
+          // Cacher le tooltip après 2s si le curseur ne revient pas
+          this._hideTooltipDelayed();
+
+          const manager = this.el.sceneEl.components['cuepoint-manager'];
+          if (manager) manager.clearHoveredCuepoint(this.data.id);
+          document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+        };
+        this.el.addEventListener('mouseenter', this._onEnter);
+        this.el.addEventListener('mouseleave', this._onLeave);
+      },
+
+      pause: function () {
+        this.el.removeEventListener('mouseenter', this._onEnter);
+        this.el.removeEventListener('mouseleave', this._onLeave);
+      }
+    });
+
+    /* video-envmap supprimé : PMREMGenerator génère un shader GLSL avec
+       'Infinity' non supporté en WebGL1 (Three.js r158 / A-Frame 1.5)
+       Le matériau metalness/roughness fonctionne sans envmap explicite */
+
+    /* ================================================================
+       CUEPOINT-MANAGER — sur <a-scene>
+       ================================================================ */
+    AFRAME.registerComponent('cuepoint-manager', {
+      init: function () {
+        this.cuepoints = [];
+        this.currentVideoId = null;
+        this.hoveredCuepointId = null;
+        this.hoveredCuepointEl = null;
+        this._onKeyDown = this._onKeyDown.bind(this);
+        window.addEventListener('keydown', this._onKeyDown);
+      },
+
+      _onKeyDown: function (e) {
+        const key = e.key.toLowerCase();
+        if (key === 'q') { this.addCuepoint(); return; }
+        if (key === 'w') {
+          if (this.hoveredCuepointId) this.deleteCuepoint(this.hoveredCuepointId);
+        }
+      },
+
+      setHoveredCuepoint: function (id, el) {
+        this.hoveredCuepointId = id;
+        this.hoveredCuepointEl = el;
+      },
+
+      clearHoveredCuepoint: function (id) {
+        if (this.hoveredCuepointId === id) {
+          this.hoveredCuepointId = null;
+          this.hoveredCuepointEl = null;
+        }
+      },
+
+      deleteCuepoint: function (id) {
+        this.cuepoints = this.cuepoints.filter(cp => cp.id !== id);
+        const els = this.el.querySelectorAll(`.rendered-cuepoint[data-cpid="${id}"]`);
+        els.forEach(el => { if (el.parentNode) el.parentNode.removeChild(el); });
+        this.hoveredCuepointId = null;
+        this.hoveredCuepointEl = null;
+        this.saveToStorage();
+      },
+
+      loadCuepointsForVideo: async function (videoSrc) {
+        this.clearAllRendered();
+        this.currentVideoId = videoSrc;
+        try {
+          const res = await fetch('/api/cuepoints?video=' + encodeURIComponent(videoSrc));
+          if (res.ok) {
+            this.cuepoints = await res.json();
+          } else {
+            this.cuepoints = [];
+          }
+        } catch (e) {
+          // Fallback local
+          const stored = localStorage.getItem('cuepoints_' + videoSrc);
+          this.cuepoints = stored ? JSON.parse(stored) : [];
+        }
+        this.cuepoints.forEach(cp => this.renderCuepoint(cp));
+      },
+
+      addCuepoint: function () {
+        if (!this.currentVideoId) return;
+        const text = prompt('Texte du cuepoint :');
+        if (!text) return;
+
+        const cameraEl = document.getElementById('camera');
+        const cameraObj = cameraEl.getObject3D('camera') || cameraEl.object3D;
+        const dir = new THREE.Vector3();
+        cameraObj.getWorldDirection(dir);
+        const distance = 4;
+        const pos = new THREE.Vector3();
+        cameraObj.getWorldPosition(pos);
+        pos.add(dir.multiplyScalar(distance));
+
+        const cuepoint = {
+          id: 'cp_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+          text: text,
+          position: { x: pos.x, y: pos.y, z: pos.z }
+        };
+        this.cuepoints.push(cuepoint);
+        this.saveToStorage();
+        this.renderCuepoint(cuepoint);
+      },
+
+      saveToStorage: function () {
+        if (this.currentVideoId) {
+          const data = JSON.stringify(this.cuepoints);
+          localStorage.setItem('cuepoints_' + this.currentVideoId, data);
+          fetch('/api/cuepoints?video=' + encodeURIComponent(this.currentVideoId), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: data
+          }).catch(() => { });
+        }
+      },
+
+      renderCuepoint: function (cp) {
+        const dx = 0 - cp.position.x;
+        const dz = 0 - cp.position.z;
+        const rotY = Math.atan2(dx, dz) * (180 / Math.PI);
+
+        const safeText = cp.text.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        const py = cp.position.y;
+
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
       <a-entity
         class="rendered-cuepoint"
         position="${cp.position.x} ${py} ${cp.position.z}"
@@ -975,401 +1038,355 @@ AFRAME.registerComponent('cuepoint-manager', {
         </a-sphere>
 
       </a-entity>`;
-    const el = wrapper.firstElementChild;
-    this.el.appendChild(el);
-  },
+        const el = wrapper.firstElementChild;
+        this.el.appendChild(el);
+      },
 
-  clearAllRendered: function () {
-    const rendered = this.el.querySelectorAll('.rendered-cuepoint');
-    rendered.forEach(el => {
-      if (el.parentNode) el.parentNode.removeChild(el);
-    });
-    this.hoveredCuepointId = null;
-    this.hoveredCuepointEl = null;
-  },
+      clearAllRendered: function () {
+        const rendered = this.el.querySelectorAll('.rendered-cuepoint');
+        rendered.forEach(el => {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        });
+        this.hoveredCuepointId = null;
+        this.hoveredCuepointEl = null;
+      },
 
-  remove: function () {
-    window.removeEventListener('keydown', this._onKeyDown);
-  }
-});
-
-/* ================================================================
-   BLOOM-PASS — post-processing UnrealBloom sur <a-scene>
-   Strength : intensité du bloom (0–2)
-   Radius   : étalement du halo (0–1)
-   Threshold: seuil de luminosité déclenchant le bloom (0–1)
-   ================================================================ */
-AFRAME.registerComponent('bloom-pass', {
-  schema: {
-    strength:  { type: 'number', default: 0.9 },
-    radius:    { type: 'number', default: 0.5 },
-    threshold: { type: 'number', default: 0.08 }
-  },
-
-  init: function () {
-    this._composer = null;
-    this._ready    = false;
-    this.el.sceneEl.addEventListener('renderstart', () => this._setup());
-  },
-
-  _setup: function () {
-    const sceneEl  = this.el.sceneEl;
-    const renderer = sceneEl.renderer;
-    const scene    = sceneEl.object3D;
-    const data     = this.data;
-
-    // Vérifier que les classes de post-processing sont disponibles
-    if (!THREE.EffectComposer || !THREE.UnrealBloomPass) {
-      console.warn('[bloom-pass] THREE.EffectComposer ou UnrealBloomPass non chargés');
-      return;
-    }
-
-    const w = renderer.domElement.clientWidth  || window.innerWidth;
-    const h = renderer.domElement.clientHeight || window.innerHeight;
-
-    this._composer = new THREE.EffectComposer(renderer);
-
-    // Passe de rendu normal
-    const renderPass = new THREE.RenderPass(scene, sceneEl.camera);
-    this._composer.addPass(renderPass);
-
-    // Passe bloom
-    this._bloomPass = new THREE.UnrealBloomPass(
-      new THREE.Vector2(w, h),
-      data.strength,
-      data.radius,
-      data.threshold
-    );
-    this._composer.addPass(this._bloomPass);
-
-    // Remplacer le render A-Frame par le composer
-    const origRender = renderer.render.bind(renderer);
-    renderer.render = () => {}; // no-op : on dessine via le composer dans tick
-    this._origRender = origRender;
-
-    // Conserver la référence caméra dynamique (peut changer)
-    this._sceneEl = sceneEl;
-    this._ready   = true;
-    console.log('[bloom-pass] activé — strength:', data.strength, 'radius:', data.radius, 'threshold:', data.threshold);
-  },
-
-  tick: function () {
-    if (!this._ready || !this._composer) return;
-    // Mettre à jour la caméra (peut avoir changé si VR activé)
-    const cam = this._sceneEl.camera;
-    if (cam) this._composer.passes[0].camera = cam;
-    this._composer.render();
-  },
-
-  remove: function () {
-    if (this._origRender && this.el.sceneEl.renderer) {
-      this.el.sceneEl.renderer.render = this._origRender;
-    }
-  }
-});
-
-/* ================================================================
-   IMMERSIVE-MANAGER — sur <a-scene>
-   ================================================================ */
-AFRAME.registerComponent('immersive-manager', {
-  init: function () {
-    const sceneEl = this.el;
-    this._isImmersive = false;
-
-    sceneEl.addEventListener('launch-360', (e) => this._enter(e.detail));
-
-    // Bouton HTML (HUD)
-    const exitBtn = document.getElementById('btn-imm-home');
-    if (exitBtn) {
-      exitBtn.addEventListener('click',    () => this._exit());
-      exitBtn.addEventListener('touchend', (e) => { e.preventDefault(); this._exit(); });
-    }
-  },
-
-  _enter: function (detail) {
-    this._isImmersive = true;
-
-    document.querySelectorAll('[id^="panel-"]').forEach(p => {
-      p.setAttribute('visible', false);
-    });
-    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
-
-    const mainGroup = document.getElementById('main-group');
-    mainGroup.setAttribute('visible', false);
-    mainGroup.object3D.visible = false;
-    mainGroup.querySelectorAll('.dwell-target').forEach(el => {
-      el.classList.remove('dwell-target');
-      el.classList.add('dwell-target-disabled');
+      remove: function () {
+        window.removeEventListener('keydown', this._onKeyDown);
+      }
     });
 
-    const v = document.getElementById('vid-360');
-    if (v) {
-      v.muted = false; v.currentTime = 0;
-      v.play().catch(() => { v.muted = true; v.play(); });
-      const cm = this.el.components['cuepoint-manager'];
-      if (cm) cm.loadCuepointsForVideo(v.getAttribute('src'));
-    }
+    /* ================================================================
+       BLOOM-PASS — post-processing UnrealBloom sur <a-scene>
+       Strength : intensité du bloom (0–2)
+       Radius   : étalement du halo (0–1)
+       Threshold: seuil de luminosité déclenchant le bloom (0–1)
+       ================================================================ */
+    AFRAME.registerComponent('bloom-pass', {
+      schema: {
+        strength: { type: 'number', default: 0.9 },
+        radius: { type: 'number', default: 0.5 },
+        threshold: { type: 'number', default: 0.08 }
+      },
 
-    const sphere = document.getElementById('sphere-360');
-    sphere.setAttribute('visible', true);
-    sphere.object3D.visible = true;
+      init: function () {
+        this._composer = null;
+        this._ready = false;
+        this.el.sceneEl.addEventListener('renderstart', () => this._setup());
+      },
 
+      _setup: function () {
+        const sceneEl = this.el.sceneEl;
+        const renderer = sceneEl.renderer;
+        const scene = sceneEl.object3D;
+        const data = this.data;
 
-    // Afficher le HUD immersif, masquer le HUD hub
-    document.getElementById('hud-hub').style.display = 'none';
-    document.getElementById('hud-immersive').classList.add('active');
+        // Vérifier que les classes de post-processing sont disponibles
+        if (!THREE.EffectComposer || !THREE.UnrealBloomPass) {
+          console.warn('[bloom-pass] THREE.EffectComposer ou UnrealBloomPass non chargés');
+          return;
+        }
 
-    const hint = document.getElementById('immersive-hint');
-    if (hint) {
-      hint.style.display = 'block';
-      setTimeout(() => hint.classList.add('visible'), 50);
-      setTimeout(() => {
-        hint.classList.remove('visible');
-        setTimeout(() => hint.style.display = 'none', 600);
-      }, 3000);
-    }
-  },
+        const w = renderer.domElement.clientWidth || window.innerWidth;
+        const h = renderer.domElement.clientHeight || window.innerHeight;
 
-  _exit: function () {
-    if (!this._isImmersive) return;
-    this._isImmersive = false;
+        this._composer = new THREE.EffectComposer(renderer);
 
-    document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+        // Passe de rendu normal
+        const renderPass = new THREE.RenderPass(scene, sceneEl.camera);
+        this._composer.addPass(renderPass);
 
-    const cm = this.el.components['cuepoint-manager'];
-    if (cm) cm.clearAllRendered();
+        // Passe bloom
+        this._bloomPass = new THREE.UnrealBloomPass(
+          new THREE.Vector2(w, h),
+          data.strength,
+          data.radius,
+          data.threshold
+        );
+        this._composer.addPass(this._bloomPass);
 
-    const v = document.getElementById('vid-360');
-    if (v) { v.pause(); v.currentTime = 0; }
+        // Remplacer le render A-Frame par le composer
+        const origRender = renderer.render.bind(renderer);
+        renderer.render = () => { }; // no-op : on dessine via le composer dans tick
+        this._origRender = origRender;
 
-    const sphere = document.getElementById('sphere-360');
-    sphere.setAttribute('visible', false);
-    sphere.object3D.visible = false;
+        // Conserver la référence caméra dynamique (peut changer)
+        this._sceneEl = sceneEl;
+        this._ready = true;
+        console.log('[bloom-pass] activé — strength:', data.strength, 'radius:', data.radius, 'threshold:', data.threshold);
+      },
 
-    // HUD switcher
-    document.getElementById('hud-immersive').classList.remove('active');
-    document.getElementById('hud-hub').style.display = 'flex';
+      tick: function () {
+        if (!this._ready || !this._composer) return;
+        // Mettre à jour la caméra (peut avoir changé si VR activé)
+        const cam = this._sceneEl.camera;
+        if (cam) this._composer.passes[0].camera = cam;
+        this._composer.render();
+      },
 
-    const mainGroup = document.getElementById('main-group');
-    mainGroup.setAttribute('visible', true);
-    mainGroup.object3D.visible = true;
-    mainGroup.querySelectorAll('.dwell-target-disabled').forEach(el => {
-      el.classList.remove('dwell-target-disabled');
-      el.classList.add('dwell-target');
+      remove: function () {
+        if (this._origRender && this.el.sceneEl.renderer) {
+          this.el.sceneEl.renderer.render = this._origRender;
+        }
+      }
     });
-  }
-});
-</script>
 
-<!-- ================================================================
-     SCÈNE
-     ================================================================ -->
-<a-scene
-  background="color: #1a1c22"
-  immersive-manager
-  cuepoint-manager
-  bloom-pass="strength: 0.9; radius: 0.5; threshold: 0.08"
-  inspector="url: https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js">
+    /* ================================================================
+       IMMERSIVE-MANAGER — sur <a-scene>
+       ================================================================ */
+    AFRAME.registerComponent('immersive-manager', {
+      init: function () {
+        const sceneEl = this.el;
+        this._isImmersive = false;
 
-  <a-assets timeout="30000">
-    <a-asset-item id="tricycle-model"  src="assets/models/bike/Tricycle.glb"></a-asset-item>
-    <a-asset-item id="boxes-model"     src="assets/models/cardboard/Cardboard Boxes.glb"></a-asset-item>
-    <a-asset-item id="flowerpot-model" src="assets/models/flower/Flower Pot.glb"></a-asset-item>
-    <a-asset-item id="bottle-model"    src="assets/models/plastic/Bottle.glb"></a-asset-item>
-    <video id="vid-preview" src="assets/videos/recycling_plant_360.mp4"
-           preload="auto" muted loop crossorigin="anonymous" playsinline></video>
-    <video id="vid-360" src="assets/videos/recycling_plant_360.mp4"
-           preload="auto" loop crossorigin="anonymous" playsinline></video>
-  </a-assets>
+        sceneEl.addEventListener('launch-360', (e) => this._enter(e.detail));
 
-  <a-camera id="camera" position="0 1 0" look-controls wasd-controls gaze-wheel>
-    <a-cursor fuse="false"
-              raycaster="objects: .dwell-target; far: 10; near: 0.1"
-              position="0 0 -1"
-              geometry="primitive: ring; radiusInner: 0.0001; radiusOuter: 0.00015"
-              material="color:#000000; opacity:0; transparent:true">
-    </a-cursor>
-  </a-camera>
+        // Bouton HTML (HUD)
+        const exitBtn = document.getElementById('btn-imm-home');
+        if (exitBtn) {
+          exitBtn.addEventListener('click', () => this._exit());
+          exitBtn.addEventListener('touchend', (e) => { e.preventDefault(); this._exit(); });
+        }
+      },
 
-  <a-videosphere id="sphere-360" src="#vid-360" rotation="0 -90 0" visible="false">
-  </a-videosphere>
+      _enter: function (detail) {
+        this._isImmersive = true;
 
+        document.querySelectorAll('[id^="panel-"]').forEach(p => {
+          p.setAttribute('visible', false);
+        });
+        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+        const mainGroup = document.getElementById('main-group');
+        mainGroup.setAttribute('visible', false);
+        mainGroup.object3D.visible = false;
+        mainGroup.querySelectorAll('.dwell-target').forEach(el => {
+          el.classList.remove('dwell-target');
+          el.classList.add('dwell-target-disabled');
+        });
+
+        const v = document.getElementById('vid-360');
+        if (v) {
+          v.muted = false; v.currentTime = 0;
+          v.play().catch(() => { v.muted = true; v.play(); });
+          const cm = this.el.components['cuepoint-manager'];
+          if (cm) cm.loadCuepointsForVideo(v.getAttribute('src'));
+        }
+
+        const sphere = document.getElementById('sphere-360');
+        sphere.setAttribute('visible', true);
+        sphere.object3D.visible = true;
+
+
+        // Afficher le HUD immersif, masquer le HUD hub
+        document.getElementById('hud-hub').style.display = 'none';
+        document.getElementById('hud-immersive').classList.add('active');
+
+        const hint = document.getElementById('immersive-hint');
+        if (hint) {
+          hint.style.display = 'block';
+          setTimeout(() => hint.classList.add('visible'), 50);
+          setTimeout(() => {
+            hint.classList.remove('visible');
+            setTimeout(() => hint.style.display = 'none', 600);
+          }, 3000);
+        }
+      },
+
+      _exit: function () {
+        if (!this._isImmersive) return;
+        this._isImmersive = false;
+
+        document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
+
+        const cm = this.el.components['cuepoint-manager'];
+        if (cm) cm.clearAllRendered();
+
+        const v = document.getElementById('vid-360');
+        if (v) { v.pause(); v.currentTime = 0; }
+
+        const sphere = document.getElementById('sphere-360');
+        sphere.setAttribute('visible', false);
+        sphere.object3D.visible = false;
+
+        // HUD switcher
+        document.getElementById('hud-immersive').classList.remove('active');
+        document.getElementById('hud-hub').style.display = 'flex';
+
+        const mainGroup = document.getElementById('main-group');
+        mainGroup.setAttribute('visible', true);
+        mainGroup.object3D.visible = true;
+        mainGroup.querySelectorAll('.dwell-target-disabled').forEach(el => {
+          el.classList.remove('dwell-target-disabled');
+          el.classList.add('dwell-target');
+        });
+      }
+    });
+  </script>
 
   <!-- ================================================================
+     SCÈNE
+     ================================================================ -->
+  <a-scene background="color: #1a1c22" immersive-manager cuepoint-manager
+    bloom-pass="strength: 0.9; radius: 0.5; threshold: 0.08"
+    inspector="url: https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js">
+
+    <a-assets timeout="30000">
+      <a-asset-item id="tricycle-model" src="assets/models/bike/Tricycle.glb"></a-asset-item>
+      <a-asset-item id="boxes-model" src="assets/models/cardboard/Cardboard Boxes.glb"></a-asset-item>
+      <a-asset-item id="flowerpot-model" src="assets/models/flower/Flower Pot.glb"></a-asset-item>
+      <a-asset-item id="bottle-model" src="assets/models/plastic/Bottle.glb"></a-asset-item>
+      <video id="vid-preview" src="assets/videos/recycling_plant_360.mp4" preload="auto" muted loop
+        crossorigin="anonymous" playsinline></video>
+      <video id="vid-360" src="assets/videos/recycling_plant_360.mp4" preload="auto" loop crossorigin="anonymous"
+        playsinline></video>
+    </a-assets>
+
+    <a-camera id="camera" position="0 1 0" look-controls wasd-controls gaze-wheel>
+      <a-cursor fuse="false" raycaster="objects: .dwell-target; far: 10; near: 0.1" position="0 0 -1"
+        geometry="primitive: ring; radiusInner: 0.0001; radiusOuter: 0.00015"
+        material="color:#000000; opacity:0; transparent:true">
+      </a-cursor>
+    </a-camera>
+
+    <a-videosphere id="sphere-360" src="#vid-360" rotation="0 -90 0" visible="false">
+    </a-videosphere>
+
+
+    <!-- ================================================================
        PANNEAUX PREVIEW redesignés — Luxury Minimal
        ================================================================ -->
 
-  <!-- PANNEAU TRICYCLE -->
-  <a-entity id="panel-tricycle" visible="false"
-            position="-1.77 1.4 -1.77" rotation="0 45 0"
-            scale="0.001 0.001 0.001">
-    <!-- Fond glassmorphism sombre -->
-    <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
-             material="transparent:true; side:double"></a-plane>
-    <!-- Bordure accent subtile -->
-    <a-plane width="1.82" height="1.16" position="0 0 -0.002"
-             material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
-    <!-- Vidéo preview -->
-    <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
-    <!-- Nom sobrement typé -->
-    <a-text value="Tricycle" align="center" color="#e8f4fd"
-            width="2.8" position="0 -0.41 0.01"
-            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="MÉTAL" align="center" color="#3aacdc"
-            width="1.6" position="0 -0.52 0.01"></a-text>
-    <!-- Bouton immersif redesigné -->
-    <a-entity position="0 -0.68 0.01">
-      <a-plane width="1.38" height="0.22"
-               material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
-      <a-plane width="1.38" height="0.22" position="0 0 -0.001"
-               material="color:#29b6f6; opacity:0.06; transparent:true; side:double"></a-plane>
-      <a-text value="▶  Voir en 360°" align="center" color="#29b6f6"
-               width="3.0" position="0 0 0.01"></a-text>
-      <a-plane class="btn-immersif-hit dwell-target"
-               width="1.44" height="0.28"
-               material="opacity:0;transparent:true"
-               position="0 0 0.02"
-               visible="false">
-      </a-plane>
+    <!-- PANNEAU TRICYCLE -->
+    <a-entity id="panel-tricycle" visible="false" position="-1.77 1.4 -1.77" rotation="0 45 0"
+      scale="0.001 0.001 0.001">
+      <!-- Fond glassmorphism sombre -->
+      <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
+        material="transparent:true; side:double"></a-plane>
+      <!-- Bordure accent subtile -->
+      <a-plane width="1.82" height="1.16" position="0 0 -0.002"
+        material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
+      <!-- Vidéo preview -->
+      <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
+      <!-- Nom sobrement typé -->
+      <a-text value="Tricycle" align="center" color="#e8f4fd" width="2.8" position="0 -0.41 0.01"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
+      <a-text value="MÉTAL" align="center" color="#3aacdc" width="1.6" position="0 -0.52 0.01"></a-text>
+      <!-- Bouton immersif redesigné -->
+      <a-entity position="0 -0.68 0.01">
+        <a-plane width="1.38" height="0.22"
+          material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
+        <a-plane width="1.38" height="0.22" position="0 0 -0.001"
+          material="color:#29b6f6; opacity:0.06; transparent:true; side:double"></a-plane>
+        <a-text value="▶  Voir en 360°" align="center" color="#29b6f6" width="3.0" position="0 0 0.01"></a-text>
+        <a-plane class="btn-immersif-hit dwell-target" width="1.44" height="0.28" material="opacity:0;transparent:true"
+          position="0 0 0.02" visible="false">
+        </a-plane>
+      </a-entity>
     </a-entity>
-  </a-entity>
 
-  <!-- PANNEAU CARTONS -->
-  <a-entity id="panel-cartons" visible="false"
-            position="-0.65 1.4 -2.41" rotation="0 15 0"
-            scale="0.001 0.001 0.001">
-    <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
-             material="transparent:true; side:double"></a-plane>
-    <a-plane width="1.82" height="1.16" position="0 0 -0.002"
-             material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
-    <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
-    <a-text value="Cartons" align="center" color="#e8f4fd"
-            width="2.8" position="0 -0.41 0.01"
-            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="CARTON" align="center" color="#3aacdc"
-            width="1.6" position="0 -0.52 0.01"></a-text>
-    <a-entity position="0 -0.68 0.01">
-      <a-plane width="1.38" height="0.22"
-               material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
-      <a-text value="▶  Voir en 360°" align="center" color="#29b6f6"
-               width="3.0" position="0 0 0.01"></a-text>
-      <a-plane class="btn-immersif-hit dwell-target"
-               width="1.44" height="0.28"
-               material="opacity:0;transparent:true"
-               position="0 0 0.02"
-               visible="false">
-      </a-plane>
+    <!-- PANNEAU CARTONS -->
+    <a-entity id="panel-cartons" visible="false" position="-0.65 1.4 -2.41" rotation="0 15 0" scale="0.001 0.001 0.001">
+      <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
+        material="transparent:true; side:double"></a-plane>
+      <a-plane width="1.82" height="1.16" position="0 0 -0.002"
+        material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
+      <a-text value="Cartons" align="center" color="#e8f4fd" width="2.8" position="0 -0.41 0.01"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
+      <a-text value="CARTON" align="center" color="#3aacdc" width="1.6" position="0 -0.52 0.01"></a-text>
+      <a-entity position="0 -0.68 0.01">
+        <a-plane width="1.38" height="0.22"
+          material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
+        <a-text value="▶  Voir en 360°" align="center" color="#29b6f6" width="3.0" position="0 0 0.01"></a-text>
+        <a-plane class="btn-immersif-hit dwell-target" width="1.44" height="0.28" material="opacity:0;transparent:true"
+          position="0 0 0.02" visible="false">
+        </a-plane>
+      </a-entity>
     </a-entity>
-  </a-entity>
 
-  <!-- PANNEAU POT DE FLEUR -->
-  <a-entity id="panel-pot-fleur" visible="false"
-            position="0.65 1.4 -2.41" rotation="0 -15 0"
-            scale="0.001 0.001 0.001">
-    <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
-             material="transparent:true; side:double"></a-plane>
-    <a-plane width="1.82" height="1.16" position="0 0 -0.002"
-             material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
-    <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
-    <a-text value="Pot de fleur" align="center" color="#e8f4fd"
-            width="2.8" position="0 -0.41 0.01"
-            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="TERRE CUITE" align="center" color="#3aacdc"
-            width="1.6" position="0 -0.52 0.01"></a-text>
-    <a-entity position="0 -0.68 0.01">
-      <a-plane width="1.38" height="0.22"
-               material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
-      <a-text value="▶  Voir en 360°" align="center" color="#29b6f6"
-               width="3.0" position="0 0 0.01"></a-text>
-      <a-plane class="btn-immersif-hit dwell-target"
-               width="1.44" height="0.28"
-               material="opacity:0;transparent:true"
-               position="0 0 0.02"
-               visible="false">
-      </a-plane>
+    <!-- PANNEAU POT DE FLEUR -->
+    <a-entity id="panel-pot-fleur" visible="false" position="0.65 1.4 -2.41" rotation="0 -15 0"
+      scale="0.001 0.001 0.001">
+      <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
+        material="transparent:true; side:double"></a-plane>
+      <a-plane width="1.82" height="1.16" position="0 0 -0.002"
+        material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
+      <a-text value="Pot de fleur" align="center" color="#e8f4fd" width="2.8" position="0 -0.41 0.01"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
+      <a-text value="TERRE CUITE" align="center" color="#3aacdc" width="1.6" position="0 -0.52 0.01"></a-text>
+      <a-entity position="0 -0.68 0.01">
+        <a-plane width="1.38" height="0.22"
+          material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
+        <a-text value="▶  Voir en 360°" align="center" color="#29b6f6" width="3.0" position="0 0 0.01"></a-text>
+        <a-plane class="btn-immersif-hit dwell-target" width="1.44" height="0.28" material="opacity:0;transparent:true"
+          position="0 0 0.02" visible="false">
+        </a-plane>
+      </a-entity>
     </a-entity>
-  </a-entity>
 
-  <!-- PANNEAU BOUTEILLE -->
-  <a-entity id="panel-bouteille" visible="false"
-            position="1.77 1.4 -1.77" rotation="0 -45 0"
-            scale="0.001 0.001 0.001">
-    <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
-             material="transparent:true; side:double"></a-plane>
-    <a-plane width="1.82" height="1.16" position="0 0 -0.002"
-             material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
-    <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
-    <a-text value="Bouteille" align="center" color="#e8f4fd"
-            width="2.8" position="0 -0.41 0.01"
-            font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
-    <a-text value="PLASTIQUE" align="center" color="#3aacdc"
-            width="1.6" position="0 -0.52 0.01"></a-text>
-    <a-entity position="0 -0.68 0.01">
-      <a-plane width="1.38" height="0.22"
-               material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
-      <a-text value="▶  Voir en 360°" align="center" color="#29b6f6"
-               width="3.0" position="0 0 0.01"></a-text>
-      <a-plane class="btn-immersif-hit dwell-target"
-               width="1.44" height="0.28"
-               material="opacity:0;transparent:true"
-               position="0 0 0.02"
-               visible="false">
-      </a-plane>
+    <!-- PANNEAU BOUTEILLE -->
+    <a-entity id="panel-bouteille" visible="false" position="1.77 1.4 -1.77" rotation="0 -45 0"
+      scale="0.001 0.001 0.001">
+      <a-plane width="1.80" height="1.14" color="#0a0c12" opacity="0.90"
+        material="transparent:true; side:double"></a-plane>
+      <a-plane width="1.82" height="1.16" position="0 0 -0.002"
+        material="color:#29b6f6; opacity:0.18; transparent:true; side:double"></a-plane>
+      <a-video src="#vid-preview" width="1.62" height="0.85" position="0 0.10 0.01"></a-video>
+      <a-text value="Bouteille" align="center" color="#e8f4fd" width="2.8" position="0 -0.41 0.01"
+        font="https://cdn.aframe.io/fonts/Exo2Bold.fnt"></a-text>
+      <a-text value="PLASTIQUE" align="center" color="#3aacdc" width="1.6" position="0 -0.52 0.01"></a-text>
+      <a-entity position="0 -0.68 0.01">
+        <a-plane width="1.38" height="0.22"
+          material="color:#29b6f6; opacity:0.15; transparent:true; side:double"></a-plane>
+        <a-text value="▶  Voir en 360°" align="center" color="#29b6f6" width="3.0" position="0 0 0.01"></a-text>
+        <a-plane class="btn-immersif-hit dwell-target" width="1.44" height="0.28" material="opacity:0;transparent:true"
+          position="0 0 0.02" visible="false">
+        </a-plane>
+      </a-entity>
     </a-entity>
-  </a-entity>
 
-  <!-- ================================================================
+    <!-- ================================================================
        SCÈNE PRINCIPALE
        ================================================================ -->
-  <a-entity id="main-group">
+    <a-entity id="main-group">
 
-    <!-- 1. TRICYCLE -->
-    <a-entity id="tricycle"
-      gltf-model="#tricycle-model"
-      position="-1.27041 0 -0.79325" scale="1 1 1" rotation="0 45 0"
-      gaze-interact="previewPanelId:panel-tricycle; video360Label:Tricycle – Métal;
-                     hitW:0.9; hitH:0.75; hitD:0.7; hitY:0.3"
-      shadow>
+      <!-- 1. TRICYCLE -->
+      <a-entity id="tricycle" gltf-model="#tricycle-model" position="-1.27041 0 -0.79325" scale="1 1 1"
+        rotation="0 45 0" gaze-interact="previewPanelId:panel-tricycle; video360Label:Tricycle – Métal;
+                     hitW:0.9; hitH:0.75; hitD:0.7; hitY:0.3" shadow>
+      </a-entity>
+
+      <!-- 2. CARTONS -->
+      <a-entity id="cartons" gltf-model="#boxes-model" position="-0.65 0 -2.41" scale="0.5 0.5 0.5" rotation="0 15 0"
+        gaze-interact="previewPanelId:panel-cartons; video360Label:Cartons – Carton;
+                     hitW:0.9; hitH:0.64; hitD:0.8; hitY:0.32" shadow>
+      </a-entity>
+
+      <!-- 3. POT DE FLEUR -->
+      <a-entity id="pot-fleur" gltf-model="#flowerpot-model" position="0.65 0 -2.41" scale="0.3 0.3 0.3"
+        rotation="0 -30 0" gaze-interact="previewPanelId:panel-pot-fleur; video360Label:Pot de fleur – Terre cuite;
+                     hitW:1.17; hitH:1.4; hitD:1.17; hitY:0.7" shadow>
+      </a-entity>
+
+      <!-- 4. BOUTEILLE -->
+      <a-entity id="bouteille" gltf-model="#bottle-model" position="1.11103 0 -1.45387" scale="0.42041 0.42041 0.42041"
+        rotation="0 0 0" gaze-interact="previewPanelId:panel-bouteille; video360Label:Bouteille – Plastique;
+                     hitW:1.22; hitH:2.0; hitD:1.22; hitY:1.0" shadow>
+      </a-entity>
+
+      <!-- SOL -->
+      <!--<a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20"
+             color="#141620" shadow="receive: true"></a-plane>-->
+
+      <!-- ÉCLAIRAGE -->
+      <a-light type="ambient" color="#FFFFFF" intensity="0.5"></a-light>
+      <a-light type="directional" color="#e8f4fd" intensity="0.7" position="-1 3 2" cast-shadow="true"></a-light>
+
     </a-entity>
 
-    <!-- 2. CARTONS -->
-    <a-entity id="cartons"
-      gltf-model="#boxes-model"
-      position="-0.65 0 -2.41" scale="0.5 0.5 0.5" rotation="0 15 0"
-      gaze-interact="previewPanelId:panel-cartons; video360Label:Cartons – Carton;
-                     hitW:0.9; hitH:0.64; hitD:0.8; hitY:0.32"
-      shadow>
-    </a-entity>
-
-    <!-- 3. POT DE FLEUR -->
-    <a-entity id="pot-fleur"
-      gltf-model="#flowerpot-model"
-      position="0.65 0 -2.41" scale="0.3 0.3 0.3" rotation="0 -30 0"
-      gaze-interact="previewPanelId:panel-pot-fleur; video360Label:Pot de fleur – Terre cuite;
-                     hitW:1.17; hitH:1.4; hitD:1.17; hitY:0.7"
-      shadow>
-    </a-entity>
-
-    <!-- 4. BOUTEILLE -->
-    <a-entity id="bouteille"
-      gltf-model="#bottle-model"
-      position="1.77 0 -1.77" scale="0.18 0.18 0.18" rotation="0 0 0"
-      gaze-interact="previewPanelId:panel-bouteille; video360Label:Bouteille – Plastique;
-                     hitW:1.22; hitH:2.0; hitD:1.22; hitY:1.0"
-      shadow>
-    </a-entity>
-
-    <!-- SOL -->
-    <a-plane position="0 0 0" rotation="-90 0 0" width="20" height="20"
-             color="#141620" shadow="receive: true"></a-plane>
-
-    <!-- ÉCLAIRAGE -->
-    <a-light type="ambient"     color="#FFFFFF" intensity="0.5"></a-light>
-    <a-light type="directional" color="#e8f4fd" intensity="0.7"
-             position="-1 3 2" cast-shadow="true"></a-light>
-
-  </a-entity>
-
-</a-scene>
+  </a-scene>
 </body>
+
 </html>

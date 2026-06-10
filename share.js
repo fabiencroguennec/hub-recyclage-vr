@@ -100,13 +100,14 @@ server.listen(PORT, () => {
   console.log('  Serveur Local & Tunnel HTTPS démarré avec succès');
   console.log('====================================================\n');
   console.log(`💻 Local URL : http://localhost:${PORT}`);
-  console.log('🔄 Connexion au tunnel sécurisé (localhost.run)...');
+  console.log('🔄 Connexion au tunnel sécurisé (pinggy.io)...');
 
-  // Spawn SSH reverse tunnel to localhost.run
+  // Spawn SSH reverse tunnel to pinggy.io
   sshTunnelProcess = spawn('ssh', [
+    '-p', '443',
     '-o', 'StrictHostKeyChecking=accept-new',
-    '-R', `80:localhost:${PORT}`,
-    'nokey@localhost.run'
+    '-R', `0:localhost:${PORT}`,
+    'a.pinggy.io'
   ]);
 
   let qrGenerated = false;
@@ -114,8 +115,8 @@ server.listen(PORT, () => {
   sshTunnelProcess.stdout.on('data', (data) => {
     const output = data.toString();
     
-    // Look for the HTTPS URL in the localhost.run output
-    const match = output.match(/https:\/\/[a-zA-Z0-9-.]+\.lhr\.life/);
+    // Look for the HTTPS URL in the pinggy.io output
+    const match = output.match(/https:\/\/[a-zA-Z0-9-.]+\.pinggy-free\.link/);
     if (match && !qrGenerated) {
       qrGenerated = true;
       const url = match[0];
