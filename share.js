@@ -32,6 +32,30 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.url.startsWith('/api/cuepoints')) {
+    const searchParams = new URL(req.url, 'http://localhost').searchParams;
+    const video = searchParams.get('video') || 'default';
+    const safeVideoName = encodeURIComponent(path.basename(video));
+    const cpFile = path.join(__dirname, 'cuepoints_' + safeVideoName + '.json');
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk.toString());
+      req.on('end', () => {
+        fs.writeFile(cpFile, body, err => {
+          res.writeHead(err ? 500 : 200);
+          res.end(err ? 'Error' : 'OK');
+        });
+      });
+    } else {
+      fs.readFile(cpFile, (err, content) => {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(err ? '[]' : content);
+      });
+    }
+    return;
+  }
+
   if (decodedUrl === '/tunnel.txt') {
     res.statusCode = 200;
     res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });

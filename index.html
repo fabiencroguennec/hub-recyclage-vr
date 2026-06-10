@@ -849,11 +849,21 @@ AFRAME.registerComponent('cuepoint-manager', {
     this.saveToStorage();
   },
 
-  loadCuepointsForVideo: function (videoSrc) {
+  loadCuepointsForVideo: async function (videoSrc) {
     this.clearAllRendered();
     this.currentVideoId = videoSrc;
-    const stored = localStorage.getItem('cuepoints_' + videoSrc);
-    this.cuepoints = stored ? JSON.parse(stored) : [];
+    try {
+      const res = await fetch('/api/cuepoints?video=' + encodeURIComponent(videoSrc));
+      if (res.ok) {
+        this.cuepoints = await res.json();
+      } else {
+        this.cuepoints = [];
+      }
+    } catch(e) {
+      // Fallback local
+      const stored = localStorage.getItem('cuepoints_' + videoSrc);
+      this.cuepoints = stored ? JSON.parse(stored) : [];
+    }
     this.cuepoints.forEach(cp => this.renderCuepoint(cp));
   },
 
@@ -883,7 +893,13 @@ AFRAME.registerComponent('cuepoint-manager', {
 
   saveToStorage: function () {
     if (this.currentVideoId) {
-      localStorage.setItem('cuepoints_' + this.currentVideoId, JSON.stringify(this.cuepoints));
+      const data = JSON.stringify(this.cuepoints);
+      localStorage.setItem('cuepoints_' + this.currentVideoId, data);
+      fetch('/api/cuepoints?video=' + encodeURIComponent(this.currentVideoId), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: data
+      }).catch(() => {});
     }
   },
 
