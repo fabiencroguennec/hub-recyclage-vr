@@ -340,10 +340,42 @@ function toggleMuteVideo(btn) {
 function updateMuteIcon(btn, isMuted) {
   if (!btn) return;
   const svg = btn.querySelector('svg');
+  if (!svg) return;
+  if (isMuted) {
+    if (!btn.querySelector('.mute-line')) {
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '1'); line.setAttribute('y1', '1');
+      line.setAttribute('x2', '23'); line.setAttribute('y2', '23');
+      line.setAttribute('stroke', '#ff5252');
+      line.setAttribute('stroke-width', '2');
+      line.setAttribute('class', 'mute-line');
+      svg.appendChild(line);
+    }
+    const paths = svg.querySelectorAll('path');
+    paths.forEach(p => p.style.opacity = '0.3');
   } else {
+    const paths = svg.querySelectorAll('path');
     paths.forEach(p => p.style.opacity = '');
     const line = btn.querySelector('.mute-line');
     if (line) line.remove();
+  }
+}
+
+/* ── XR Mode (VR/AR) Switch ── */
+function switchXRMode() {
+  const scene = document.querySelector('a-scene');
+  if (!scene) return;
+  if (scene.is('vr-mode') || scene.is('ar-mode')) {
+    scene.exitVR();
+  } else {
+    if (navigator.xr && navigator.xr.isSessionSupported) {
+      navigator.xr.isSessionSupported('immersive-ar').then(supported => {
+        if (supported) scene.enterAR();
+        else scene.enterVR();
+      }).catch(() => scene.enterVR());
+    } else {
+      scene.enterVR();
+    }
   }
 }
 
