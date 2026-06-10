@@ -631,8 +631,15 @@ AFRAME.registerComponent('gaze-interact', {
 
     this.panel.setAttribute('scale', '0.001 0.001 0.001');
     this.panel.setAttribute('visible', true);
-    this.panel.setAttribute('animation__appear',
-      'property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 500; easing: easeOutBack');
+
+    this.panel.removeAttribute('animation__disappear');
+    this.panel.removeAttribute('animation__appear');
+    setTimeout(() => {
+      if (this.panel) {
+        this.panel.setAttribute('animation__appear',
+          'property: scale; from: 0.001 0.001 0.001; to: 1 1 1; dur: 500; easing: easeOutBack');
+      }
+    }, 10);
 
     const vid = document.getElementById('vid-preview');
     if (vid) vid.play().catch(() => {});
@@ -649,8 +656,14 @@ AFRAME.registerComponent('gaze-interact', {
     clearTimeout(this._autoDismiss);
     document.dispatchEvent(new CustomEvent('gaze-dwell-stop'));
 
-    this.panel.setAttribute('animation__disappear',
-      'property: scale; from: 1 1 1; to: 0.001 0.001 0.001; dur: 380; easing: easeInBack');
+    this.panel.removeAttribute('animation__appear');
+    this.panel.removeAttribute('animation__disappear');
+    setTimeout(() => {
+      if (this.panel) {
+        this.panel.setAttribute('animation__disappear',
+          'property: scale; from: 1 1 1; to: 0.001 0.001 0.001; dur: 380; easing: easeInBack');
+      }
+    }, 10);
     setTimeout(() => {
       this.panel.setAttribute('visible', false);
       if (this.btnHit) this.btnHit.setAttribute('visible', false);
