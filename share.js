@@ -5,6 +5,7 @@ const http = require('http');
 const qrcode = require('qrcode-terminal');
 
 const PORT = 8000;
+let globalTunnelUrl = '';
 
 // Mime types helper for static server
 const MIME_TYPES = {
@@ -28,6 +29,13 @@ const server = http.createServer((req, res) => {
   } catch (e) {
     res.statusCode = 400;
     res.end('Bad Request');
+    return;
+  }
+
+  if (decodedUrl === '/tunnel.txt') {
+    res.statusCode = 200;
+    res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end(globalTunnelUrl || '');
     return;
   }
 
@@ -87,6 +95,7 @@ server.listen(PORT, () => {
     if (match && !qrGenerated) {
       qrGenerated = true;
       const url = match[0];
+      globalTunnelUrl = url;
 
       console.log(`\n🔑 Secure Tunnel URL (HTTPS) : ${url}`);
       console.log('\n📲 Scannez le QR Code ci-dessous avec votre Pixel 4 :');

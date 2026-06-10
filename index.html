@@ -231,6 +231,12 @@
       <line x1="8" y1="11" x2="14" y2="11"/>
     </svg>
   </button>
+  <button class="hud-btn" id="btn-hub-xr" data-tip="Mode XR (VR/AR)" onclick="switchXRMode()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+      <path d="M4 14l4-4 4 4"/><path d="M4 10v4"/><path d="M12 10v4"/><path d="M16 10l4 4"/><path d="M20 10v4"/>
+      <path d="M2 19h20M2 5h20"/>
+    </svg>
+  </button>
 </div>
 
 <!-- ── HUD Immersif (visible en mode 360) ── -->
@@ -256,6 +262,19 @@
       <line x1="8" y1="11" x2="14" y2="11"/>
     </svg>
   </button>
+  <button class="hud-btn" id="btn-imm-qr" data-tip="QR Code" onclick="openQR()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+      <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
+      <path d="M14 14h1v1h-1z M17 14h1v1h-1z M14 17h1v1h-1z M17 17h4v4h-4z"/>
+    </svg>
+  </button>
+  <button class="hud-btn" id="btn-imm-xr" data-tip="Mode XR (VR/AR)" onclick="switchXRMode()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" color="rgba(255,255,255,0.82)">
+      <path d="M4 14l4-4 4 4"/><path d="M4 10v4"/><path d="M12 10v4"/><path d="M16 10l4 4"/><path d="M20 10v4"/>
+      <path d="M2 19h20M2 5h20"/>
+    </svg>
+  </button>
 </div>
 
 <!-- ── Hint discret ── -->
@@ -273,8 +292,17 @@
 
 <script>
 /* ── QR Code ── */
-function openQR() {
-  const url = window.location.href;
+async function openQR() {
+  let url = window.location.href;
+  try {
+    const res = await fetch('/tunnel.txt');
+    if (res.ok) {
+      const text = await res.text();
+      if (text.startsWith('http')) {
+        url = text;
+      }
+    }
+  } catch (e) {}
   drawQR(url);
   document.getElementById('qr-modal').classList.add('open');
 }
@@ -309,21 +337,9 @@ function toggleMuteVideo(btn) {
   v.muted = !v.muted;
   updateMuteIcon(btn, v.muted);
 }
-function updateMuteIcon(btn, muted) {
-  btn.classList.toggle('muted', muted);
+function updateMuteIcon(btn, isMuted) {
+  if (!btn) return;
   const svg = btn.querySelector('svg');
-  const paths = btn.querySelectorAll('path');
-  if (muted) {
-    // Icône muted : rayer l'onde
-    paths.forEach((p,i) => { if(i>0) p.style.opacity = '0.15'; });
-    const line = btn.querySelector('.mute-line');
-    if (!line) {
-      const l = document.createElementNS('http://www.w3.org/2000/svg','line');
-      l.setAttribute('x1','1'); l.setAttribute('y1','1');
-      l.setAttribute('x2','23'); l.setAttribute('y2','23');
-      l.setAttribute('class','mute-line');
-      svg.appendChild(l);
-    }
   } else {
     paths.forEach(p => p.style.opacity = '');
     const line = btn.querySelector('.mute-line');
@@ -515,6 +531,7 @@ AFRAME.registerComponent('gaze-interact', {
     this._rafId       = null;
     this._panelOpen   = false;
     this._autoDismiss = null;
+    this._isHovered   = false;
 
     this.panel  = data.previewPanelId
       ? document.getElementById(data.previewPanelId) : null;
@@ -544,6 +561,7 @@ AFRAME.registerComponent('gaze-interact', {
     }
 
     hitbox.addEventListener('mouseenter', () => {
+      this._isHovered = true;
       el.sceneEl.emit('close-other-panels', { excludeId: el.id });
       this._rotating = true;
       this._lastTime = null;
@@ -557,6 +575,7 @@ AFRAME.registerComponent('gaze-interact', {
     });
 
     hitbox.addEventListener('mouseleave', () => {
+      this._isHovered = false;
       this._rotating = false;
       cancelAnimationFrame(this._rafId);
       this._rafId = null;
@@ -603,6 +622,16 @@ AFRAME.registerComponent('gaze-interact', {
     setTimeout(() => {
       this.panel.setAttribute('visible', false);
       if (this.btnHit) this.btnHit.setAttribute('visible', false);
+
+      if (this._isHovered) {
+        this._rotating = true;
+        this._lastTime = null;
+        if (!this._rafId) this._tick();
+
+        document.dispatchEvent(new CustomEvent('gaze-dwell-start', {
+          detail: { ms: 2000, onComplete: () => this._showPanel() }
+        }));
+      }
     }, 400);
   },
 
@@ -1092,7 +1121,7 @@ AFRAME.registerComponent('immersive-manager', {
            preload="auto" loop crossorigin="anonymous" playsinline></video>
   </a-assets>
 
-  <a-camera id="camera" position="0 1.8 0" look-controls wasd-controls gaze-wheel>
+  <a-camera id="camera" position="0 1 0" look-controls wasd-controls gaze-wheel>
     <a-cursor fuse="false"
               raycaster="objects: .dwell-target; far: 10; near: 0.1"
               position="0 0 -1"
@@ -1236,7 +1265,7 @@ AFRAME.registerComponent('immersive-manager', {
     <!-- 1. TRICYCLE -->
     <a-entity id="tricycle"
       gltf-model="#tricycle-model"
-      position="-1.77 0 -1.77" scale="1 1 1" rotation="0 45 0"
+      position="-1.27041 0 -0.79325" scale="1 1 1" rotation="0 45 0"
       gaze-interact="previewPanelId:panel-tricycle; video360Label:Tricycle – Métal;
                      hitW:0.9; hitH:0.75; hitD:0.7; hitY:0.3"
       shadow>
